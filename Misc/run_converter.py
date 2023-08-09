@@ -42,6 +42,8 @@ def print_progress(train_loss, val_loss, test_loss, metric_name, val_metric, tes
 
 def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': True}):
     '''
+    This is the important function
+
     Given a dataloader, compute for each batch individually
     1) if the graphs in the batch are outerplanar
     2)  the Hamiltonian cycles of the outerplanar blocks
@@ -86,48 +88,48 @@ def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': T
         print(f'time spent abroad: {tuc}')
 
 
-def plain_bagels_allyoucaneat(loader, config={'binfile': './outerplanaritytest', 'verbose': True}):
-    '''
-    Given a dataloader, compute for each batch individually
-    1) if the graphs in the batch are outerplanar
-    2)  the Hamiltonian cycles of the outerplanar blocks
+# def plain_bagels_allyoucaneat(loader, config={'binfile': './outerplanaritytest', 'verbose': True}):
+#     '''
+#     Given a dataloader, compute for each batch individually
+#     1) if the graphs in the batch are outerplanar
+#     2)  the Hamiltonian cycles of the outerplanar blocks
 
-    To this end, each batch is transformed to a textual format, piped to an external program 
-    which pipes its results back which is then parsed and stored in the tensors (TODO).
-    '''
-    import json
-    import subprocess
+#     To this end, all data is transformed to a textual format, piped to an external program 
+#     which pipes its results back which is then parsed and stored in the tensors (TODO).
+#     '''
+#     import json
+#     import subprocess
 
-    graphstring = ''
+#     graphstring = ''
 
-    for batch in loader:
+#     for batch in loader:
 
-        # graph conversion to textual input format for all graphs in the current batch
-        # assumes undirected graphs
-        for i in range(batch.num_graphs):
-            g = batch.get_example(i)
-            graphstring += f'# {i} {0} {g.num_nodes} {g.num_edges // 2}\n'
-            graphstring += " ".join(['1' for _ in range(g.num_nodes)]) + '\n'
-            graphstring += " ".join([f'{g.edge_index[0,i] + 1} {g.edge_index[1,i] + 1} {1}' for i in range(g.edge_index.shape[1]) if g.edge_index[0,i] < g.edge_index[1,i]]) + '\n'
+#         # graph conversion to textual input format for all graphs in the current batch
+#         # assumes undirected graphs
+#         for i in range(batch.num_graphs):
+#             g = batch.get_example(i)
+#             graphstring += f'# {i} {0} {g.num_nodes} {g.num_edges // 2}\n'
+#             graphstring += " ".join(['1' for _ in range(g.num_nodes)]) + '\n'
+#             graphstring += " ".join([f'{g.edge_index[0,i] + 1} {g.edge_index[1,i] + 1} {1}' for i in range(g.edge_index.shape[1]) if g.edge_index[0,i] < g.edge_index[1,i]]) + '\n'
     
-    graphstring += '$\n'
+#     graphstring += '$\n'
 
 
-    tic = time.time()
+#     tic = time.time()
 
-    # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
-    cmd = [config['binfile'], '-']
-    proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
+#     # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
+#     cmd = [config['binfile'], '-']
+#     proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
 
-    toc = time.time()
-    if config['verbose']:
-        print(f'time spent abroad: {toc -  tic}')
+#     toc = time.time()
+#     if config['verbose']:
+#         print(f'time spent abroad: {toc -  tic}')
 
-    # parsing of the results (directly from stdout of the process)
-    jsobjects = json.loads(proc.stdout.decode("utf-8"))
-    # print(jsobjects)
+#     # parsing of the results (directly from stdout of the process)
+#     jsobjects = json.loads(proc.stdout.decode("utf-8"))
+#     # print(jsobjects)
 
-    # TODO: don't know, yet, how to best store this information in node or edge features
+#     # TODO: don't know, yet, how to best store this information in node or edge features
 
 
     
@@ -162,13 +164,13 @@ def main(args):
 
     print(f'time for conversion and computation {toc -  tic}')
 
-    tic = time.time()
+    # tic = time.time()
 
-    plain_bagels_allyoucaneat(train_loader)
+    # plain_bagels_allyoucaneat(train_loader)
 
-    toc = time.time()
+    # toc = time.time()
 
-    print(f'time for conversion and computation {toc -  tic}')
+    # print(f'time for conversion and computation {toc -  tic}')
 
 
 
