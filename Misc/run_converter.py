@@ -50,6 +50,13 @@ def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': T
 
     To this end, each batch is transformed to a textual format, piped to an external program 
     which pipes its results back which is then parsed and stored in the tensors (TODO).
+
+    The function uses the (linux) executable ``outerplanaritytest`` which might need to
+    be recompiled from source if your system is different.
+    The source code is available at https://github.com/pwelke/GraphMiningTools
+    By cloning the repository and running 
+    ``make outerplanaritytest``
+    on your system, the binary can be recompiled to run on your Posix system.
     '''
     import json
     import subprocess
