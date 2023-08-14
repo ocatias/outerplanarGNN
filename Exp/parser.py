@@ -96,12 +96,7 @@ def parse_args(passed_args=None):
     else:
         args = parser.parse_args(transform_dict_to_args_list(passed_args))        
 
-    args.__dict__["use_tracking"] = args.tracking == 1
-    args.__dict__["use_virtual_node"] = args.virtual_node == 1
-    args.__dict__["use_node_encoder"] = args.node_encoder == 1
-    args.__dict__["do_drop_feat"] = args.drop_feat == 1
-    args.__dict__["use_cat"] = args.cat == 1
-
+    
     # https://codereview.stackexchange.com/a/79015
     # If a config file is provided, write it's values into the arguments
     if args.config_file:
@@ -113,5 +108,11 @@ def parse_args(passed_args=None):
                 arg_dict[key] = value[0]
             else:
                 arg_dict[key] = value
+                
+    args.__dict__["use_tracking"] = args.tracking == 1
+    args.__dict__["use_virtual_node"] = args.virtual_node == 1
+    args.__dict__["use_node_encoder"] = args.node_encoder == 1
+    args.__dict__["do_drop_feat"] = args.drop_feat == 1
+    args.__dict__["use_cat"] = args.cat == 1
 
     return args

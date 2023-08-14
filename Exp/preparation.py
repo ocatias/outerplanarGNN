@@ -89,7 +89,7 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
     
     if args.use_cat:
         node_feature_dims.append(5)
-        edge_feature_dims += [6, max_hamiltonian_cycle_length]
+        edge_feature_dims += [7, max_hamiltonian_cycle_length]
         
     if args.dataset.lower() == "zinc"and not args.do_drop_feat:
         edge_feature_dims += [4 + cat_add]

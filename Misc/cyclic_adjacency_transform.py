@@ -38,6 +38,7 @@ label_edge_pool_art = 4
 
 # Edge from articulation node to original node or articulation node
 label_edge_art_original = 5
+label_edge_block_ham = 6
 
 #
 # CODE
@@ -269,10 +270,15 @@ class CyclicAdjacencyTransform(BaseTransform):
                 x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
             
             for vertex in cycle:
+                new_edge_index = add_undir_edge(new_edge_index, vertex_to_original_dict[(vertex, cycle_idx)], idx)
+                new_edge_index = add_undir_edge(new_edge_index, vertex_to_duplicate_dict[(vertex, cycle_idx)], idx)
+                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 4)
+                
                 if vertex in articulation_vertices:
                     pooling_vertex = vertex_to_pooling[(int(vertex), cycle_idx)]
                     new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
+                    
 
         nr_vertices_in_graph_with_block = nr_vertices_in_graph_with_pooling + created_vertices
         
@@ -312,8 +318,6 @@ class CyclicAdjacencyTransform(BaseTransform):
         assert data.edge_index.shape[1] == data.edge_attr.shape[0]
         assert data.x.shape[0] >= (torch.max(data.edge_index) + 1)
         assert torch.min(data.edge_index) >= 0
-
-        print(data)
         return data
 
     def __repr__(self) -> str:
