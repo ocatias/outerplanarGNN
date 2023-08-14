@@ -3,6 +3,7 @@ datasets/
 wandb/
 Results/
 !Results/.gitignore
+Imgs/
 
 
 # Byte-compiled / optimized / DLL files
