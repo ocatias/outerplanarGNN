@@ -10,6 +10,7 @@ import torch
 import networkx as nx
 import matplotlib.pyplot as plt
 from torch_geometric.datasets import ZINC, GNNBenchmarkDataset
+from ogb.graphproppred import PygGraphPropPredDataset
 
 from Misc.config import config 
 from Misc.utils import edge_tensor_to_list
@@ -17,7 +18,7 @@ from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 
 colors_feat = ['white', 'red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink']
 colors_type = ['red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink']
-cololrs_edges = ['orange', 'red', 'yellow', 'blue', 'green', 'grey', 'pink']
+cololrs_edges = ['orange', 'red', 'yellow', 'blue', 'green', 'grey', 'pink', 'purple']
 default_color = 'white'
 default_color_edge = 'black'
 
@@ -114,35 +115,37 @@ def main():
 
         # print(f"After trafo: {transformed_data}")
 
-        visualize(transformed_data, f"graph_{i}_transformed_gtypes", colors_type, v_feat_dim=0, e_feat_dim=0)
-        visualize(transformed_data, f"graph_{i}_transformed_gog_feats", colors_feat, v_feat_dim=1, e_feat_dim=2)
-        visualize(transformed_data, f"graph_{i}_transformed_gdistance", colors_feat, v_feat_dim=1, e_feat_dim=1)
+        visualize(transformed_data, f"graph_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+        visualize(transformed_data, f"graph_{i}_transformed_og_feats", colors_feat, v_feat_dim=1, e_feat_dim=2)
+        visualize(transformed_data, f"graph_{i}_transformed_distance", colors_feat, v_feat_dim=1, e_feat_dim=1)
 
     # quit()
-    print("Preparing ZINC")
-    ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
-
-    print("Running on ZINC")
+    print("Preparing dataset")
+    # ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
+    ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-molhiv")
+    
+    print("Running on dataset")
+    transform = CyclicAdjacencyTransform(debug=True)
     start = time.time()
     for i, data in enumerate(ds):        
-        data.x = data.x + 1
-        data.edge_attr = data.edge_attr + 1
-        visualize(data, f"zinc_{i}", colors_feat)
-        data.x = data.x -1
-        data.edge_attr = data.edge_attr - 1
-        transform = CyclicAdjacencyTransform(debug=True)
+        # data.x = data.x + 1
+        # data.edge_attr = data.edge_attr + 1
+        # visualize(data, f"zinc_{i}", colors_feat)
+        # data.x = data.x -1
+        # data.edge_attr = data.edge_attr - 1
+        
         
         transformed_data = transform(data)
 
         # print(f"After trafo: {transformed_data}")
 
-        visualize(transformed_data, f"zinc_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
-        visualize(transformed_data, f"zinc_{i}_transformed_distance", colors_feat, v_feat_dim=0, e_feat_dim=1)
+        # visualize(transformed_data, f"zinc_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+        # visualize(transformed_data, f"zinc_{i}_transformed_distance", colors_feat, v_feat_dim=0, e_feat_dim=1)
         
-        print(f"\r{i}", end="")
+        # print(f"\r{i}", end="")
         
-        if (i + 1) % 11 == 0:
-            break
+        # if (i + 1) % 11 == 0:
+        #     break
 
     end = time.time()
     print(f"\rRuntime  {end - start:.2f}s")
