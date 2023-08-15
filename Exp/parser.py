@@ -105,6 +105,7 @@ def parse_args(passed_args=None):
         arg_dict = args.__dict__
         for key, value in data.items():
             if isinstance(value, list): 
+                assert len(value) == 1
                 arg_dict[key] = value[0]
             else:
                 arg_dict[key] = value
