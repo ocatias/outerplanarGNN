@@ -217,9 +217,10 @@ class CyclicAdjacencyTransform(BaseTransform):
                         new_feat[0, pos_edge_type] = label_edge_original
                         
                         # Add distance in hamiltonian cycle to new and old edge
-                        distance = (pos_in_ham_cycle2 + len(ham_cycle) - pos_in_ham_cycle1) % len(ham_cycle)
-                        new_feat[0, pos_ham_dis] = distance
-                        edge_attr[i, pos_ham_dis] = distance
+                        distance_1_to_2 = (pos_in_ham_cycle2 + len(ham_cycle) - pos_in_ham_cycle1) % len(ham_cycle)
+                        distance_2_to_1 = (pos_in_ham_cycle1 + len(ham_cycle) - pos_in_ham_cycle2) % len(ham_cycle)
+                        new_feat[0, pos_ham_dis] = distance_2_to_1
+                        edge_attr[i, pos_ham_dis] = distance_1_to_2
                         
                         edge_attr = torch.cat((edge_attr, new_feat), dim=0)
                         
