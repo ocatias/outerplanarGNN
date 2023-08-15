@@ -9,7 +9,7 @@ from torch_geometric.utils import to_undirected
 from torch_geometric.transforms import ToUndirected, Compose, OneHotDegree
 from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
 from ogb.graphproppred.mol_encoder import AtomEncoder
-from ogb.utils.features import get_atom_feature_dims
+from ogb.utils.features import get_atom_feature_dims, get_bond_feature_dims
 
 from Models.gnn import GNN
 from Models.encoder import NodeEncoder, EdgeEncoder, ZincAtomEncoder, EgoEncoder
@@ -80,6 +80,9 @@ def load_dataset(args, config):
 
     return train_loader, val_loader, test_loader
 
+def add_1_to_all_in_ls(ls):
+    return list(map(lambda x: x+1, ls))
+
 def get_model(args, num_classes, num_vertex_features, num_tasks):
     node_feature_dims = []
     edge_feature_dims = []
@@ -97,8 +100,8 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         node_encoder = NodeEncoder(emb_dim=args.emb_dim, feature_dims=node_feature_dims)
         edge_encoder =  EdgeEncoder(emb_dim=args.emb_dim, feature_dims=edge_feature_dims)
     elif args.dataset.lower() in ["ogbg-molhiv", "ogbg-molpcba", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbace", "ogbg-molbbbp", "ogbg-molclintox", "ogbg-molmuv", "ogbg-molsider", "ogbg-moltoxcast", "ogbg-molfreesolv", "ogbg-mollipo"] and not args.do_drop_feat:
-        edge_feature_dims += get_bond_feature_dims()
-        node_feature_dims += get_atom_feature_dims()
+        edge_feature_dims += add_1_to_all_in_ls(get_bond_feature_dims())
+        node_feature_dims += add_1_to_all_in_ls(get_atom_feature_dims())
         print("node_feature_dims: ", node_feature_dims)
         node_encoder, edge_encoder = NodeEncoder(args.emb_dim, feature_dims=node_feature_dims), EdgeEncoder(args.emb_dim, feature_dims=edge_feature_dims)
     else:
@@ -106,7 +109,7 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
             
     if model in ["gin", "gcn", "gat"]:  
         return GNN(num_classes, num_tasks, args.num_layers, args.emb_dim, 
-                gnn_type = model, virtual_node = args.use_virtual_node, drop_ratio = args.drop_out, JK = "last", 
+                gnn_type = model, virtual_node = args.use_virtual_node, drop_ratio = args.drop_out, JK = args.JK, 
                 graph_pooling = args.pooling, edge_encoder=edge_encoder, node_encoder=node_encoder, 
                 use_node_encoder = args.use_node_encoder, num_mlp_layers = args.num_mlp_layers)
     elif args.model.lower() == "mlp":

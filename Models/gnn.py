@@ -87,9 +87,8 @@ class GNN(torch.nn.Module):
         new_mlp = ModuleList([])
         new_mlp.requires_grad = False
 
-        
         for i in range(self.num_mlp_layers):
-            in_size = hidden_size if i > 0 else self.emb_dim + graph_features
+            in_size = hidden_size if i > 0 else self.emb_dim*(self.num_layer+1) + graph_features
             out_size = hidden_size if i < self.num_mlp_layers - 1 else self.num_classes*self.num_tasks
 
             new_linear_layer = Linear(in_size, out_size)
