@@ -88,7 +88,8 @@ def parse_args(passed_args=None):
     
     parser.add_argument('--cat', type=int, default=0,
                         help="Set to 1 to use cycle adjacency transform (default: 0)")
-                    
+    parser.add_argument('--JK', type=str, default='last',
+                    help='Type of jumping knowledge to use (default: last; options: last, sum, concat)') 
 
     # Load partial args instead of command line args (if they are given)
     if passed_args is None:
