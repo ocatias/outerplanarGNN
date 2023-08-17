@@ -11,16 +11,19 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from torch_geometric.datasets import ZINC, GNNBenchmarkDataset
 from ogb.graphproppred import PygGraphPropPredDataset
+import pandas as pd
 
 from Misc.config import config 
 from Misc.utils import edge_tensor_to_list
 from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 
-colors_feat = ['white', 'red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink']
-colors_type = ['red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink']
-cololrs_edges = ['orange', 'red', 'yellow', 'blue', 'green', 'grey', 'pink', 'purple']
+colors_feat = ['white', 'red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink', 'magenta']
+colors_type = ['red', 'orange', 'yellow', 'blue', 'green', 'grey', 'pink', 'magenta']
+cololrs_edges = ['orange', 'red', 'yellow', 'blue', 'green', 'grey', 'pink', 'purple', 'magenta', 'maroon']
 default_color = 'white'
 default_color_edge = 'black'
+
+max_value_color = 'magenta'
 
 def visualize(data, name, colors, v_feat_dim = None, e_feat_dim = None):
     G = nx.DiGraph(directed=True)
@@ -94,7 +97,6 @@ def main():
     xs = [x1, x2, x3, x4, x5, x6, x7]
     edge_attrs = [edge_attr1, edge_attr2, edge_attr3, edge_attr4, edge_attr5, edge_attr6, edge_attr7]
 
-
     for i in range(len(edge_indices)):
         edge_index = edge_indices[i]
         data =  Data(edge_index=edge_index)
@@ -106,7 +108,7 @@ def main():
         # print(f"Before trafo: {data}")
         data.x = data.x + 1
         data.edge_attr = data.edge_attr + 1
-        visualize(data, f"graph_{i}", colors_feat, v_feat_dim=0, e_feat_dim=0)
+        visualize(data, f"graph_{i}", colors_feat)
         data.x = data.x -1
         data.edge_attr = data.edge_attr - 1
         transform = CyclicAdjacencyTransform(debug=True)
@@ -116,39 +118,61 @@ def main():
         # print(f"After trafo: {transformed_data}")
 
         visualize(transformed_data, f"graph_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
-        visualize(transformed_data, f"graph_{i}_transformed_og_feats", colors_feat, v_feat_dim=1, e_feat_dim=2)
         visualize(transformed_data, f"graph_{i}_transformed_distance", colors_feat, v_feat_dim=1, e_feat_dim=1)
 
     # quit()
-    print("Preparing dataset")
-    # ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
-    ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-molhiv")
     
-    print("Running on dataset")
-    transform = CyclicAdjacencyTransform(debug=True)
-    start = time.time()
-    for i, data in enumerate(ds):        
-        # data.x = data.x + 1
-        # data.edge_attr = data.edge_attr + 1
-        # visualize(data, f"zinc_{i}", colors_feat)
-        # data.x = data.x -1
-        # data.edge_attr = data.edge_attr - 1
-        
-        
-        transformed_data = transform(data)
+    do_vis = True
 
-        # print(f"After trafo: {transformed_data}")
+    for ds_name in ["zinc", "molhiv"]:
+        print(f"Preparing {ds_name}")
 
-        # visualize(transformed_data, f"zinc_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
-        # visualize(transformed_data, f"zinc_{i}_transformed_distance", colors_feat, v_feat_dim=0, e_feat_dim=1)
-        
-        # print(f"\r{i}", end="")
-        
-        # if (i + 1) % 11 == 0:
-        #     break
+        distances = []
 
-    end = time.time()
-    print(f"\rRuntime  {end - start:.2f}s")
+        if ds_name == "zinc":
+            ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
+        elif ds_name == "molhiv":
+            ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-molhiv")
+        else:
+            raise 
+        
+        transform = CyclicAdjacencyTransform(debug=True)
+        print(f"Running on {ds_name}")
+
+        start = time.time()
+        for i, data in enumerate(ds):        
+            
+
+            if do_vis:
+                data.x = data.x + 1
+                data.edge_attr = data.edge_attr + 1
+                visualize(data, f"{ds_name}_{i}", colors_feat)
+                data.x = data.x -1
+                data.edge_attr = data.edge_attr - 1
+            
+            
+            transformed_data = transform(data)
+            distances += transformed_data.edge_attr[:,1].tolist()
+
+            if do_vis:
+                print(f"After trafo: {transformed_data}")
+
+                visualize(transformed_data, f"{ds_name}_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+                
+                print(f"\r{i}", end="")
+                
+                if (i + 1) % 11 == 0:
+                    break
+
+        values = list(set(distances))
+        total = len(distances)
+        values.sort()
+        for value in values:
+            counts = len(list(filter(lambda x: x == value, distances)))
+            print(f"{value}: {counts}, \t{counts/total}%" )
+
+        end = time.time()
+        print(f"\rRuntime  {end - start:.2f}s on {ds_name}")
     
 if __name__ == "__main__":
     main()

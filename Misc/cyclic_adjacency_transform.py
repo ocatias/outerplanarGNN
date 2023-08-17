@@ -25,6 +25,7 @@ label_articulation_vertex = 1
 label_pooling_vertex = 2
 label_block_vertex = 3
 label_original_Vertex = 4
+label_global_pool = 5
 
 pos_edge_type = 0
 # Hamiltonian cycle distance = 0 -> not in a hamiltonian cycle
@@ -39,6 +40,7 @@ label_edge_pool_art = 4
 # Edge from articulation node to original node or articulation node
 label_edge_art_original = 5
 label_edge_block_ham = 6
+label_edge_pool_ham = 7
 
 #
 # CODE
@@ -302,6 +304,17 @@ class CyclicAdjacencyTransform(BaseTransform):
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_art, 2)
                     
         nr_vertices_in_new_graph = nr_vertices_in_graph_with_block + created_vertices
+        
+        # Add a virtual node pooling blocks:
+        idx = nr_vertices_in_new_graph
+        if has_vertex_feat:
+            new_feat = torch.cat((torch.tensor([label_global_pool]), torch.zeros(x_shape)))
+            x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
+                
+        for block in cycle_to_block_vertex.values():
+            new_edge_index = add_undir_edge(new_edge_index, block, idx) 
+            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_ham, 2)
+        nr_vertices_in_new_graph += 1
         
         # Clean up edges: move edges from articulation vertices in the hamiltonian cycles to the articulation representation vertices
         for i in edges_outside_ham_cycle:
