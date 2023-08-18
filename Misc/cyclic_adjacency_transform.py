@@ -329,9 +329,11 @@ class CyclicAdjacencyTransform(BaseTransform):
             data.edge_attr = edge_attr.type(data.edge_attr.type())
         data.num_nodes = x.shape[0]
 
+
         assert data.edge_index.shape[1] == data.edge_attr.shape[0]
-        assert data.x.shape[0] >= (torch.max(data.edge_index) + 1)
-        assert torch.min(data.edge_index) >= 0
+        if data.edge_index.shape[1]> 0:
+            assert data.x.shape[0] >= (torch.max(data.edge_index) + 1)
+            assert torch.min(data.edge_index) >= 0
         return data
 
     def __repr__(self) -> str:
