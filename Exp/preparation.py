@@ -3,7 +3,7 @@ import csv
 
 import torch
 from torch_geometric.loader import DataLoader
-from torch_geometric.datasets import ZINC, GNNBenchmarkDataset, GNNBenchmarkDataset
+from torch_geometric.datasets import ZINC, GNNBenchmarkDataset, GNNBenchmarkDataset, LRGBDataset
 import torch.optim as optim
 from torch_geometric.utils import to_undirected
 from torch_geometric.transforms import ToUndirected, Compose, OneHotDegree
@@ -65,6 +65,16 @@ def load_dataset(args, config):
         dataset = PlanarSATPairsDataset(name=args.dataset, root=dir, pre_transform=transform)
         split_dict = dataset.separate_data(args.seed, args.split)
         datasets = [split_dict["train"], split_dict["valid"], split_dict["test"]]
+    elif args.dataset.lower() == "peptides-func":
+        datasets = [LRGBDataset(root=dir, name='Peptides-func', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "peptides-struct":
+        datasets = [LRGBDataset(root=dir, name='Peptides-struct', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "pascalvoc-sp":
+        datasets = [LRGBDataset(root=dir, name='PascalVOC-SP', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "coco-sp":
+        datasets = [LRGBDataset(root=dir, name='COCO-SP', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "pcqm-contact":
+        datasets = [LRGBDataset(root=dir, name='PCQM-Contact', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
     else:
         raise NotImplementedError("Unknown dataset")
         
