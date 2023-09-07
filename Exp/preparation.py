@@ -3,7 +3,7 @@ import csv
 
 import torch
 from torch_geometric.loader import DataLoader
-from torch_geometric.datasets import ZINC, GNNBenchmarkDataset, GNNBenchmarkDataset
+from torch_geometric.datasets import ZINC, GNNBenchmarkDataset, GNNBenchmarkDataset, LRGBDataset
 import torch.optim as optim
 from torch_geometric.utils import to_undirected
 from torch_geometric.transforms import ToUndirected, Compose, OneHotDegree
@@ -71,6 +71,8 @@ def load_dataset(args, config):
         dataset = PlanarSATPairsDataset(name=args.dataset, root=dir, pre_transform=transform)
         split_dict = dataset.separate_data(args.seed, args.split)
         datasets = [split_dict["train"], split_dict["valid"], split_dict["test"]]
+    elif args.dataset.lower() == "peptides-func":
+        datasets = [LRGBDataset(name ="Peptides-func", root=dir, split=split, pre_transform=transform) for split in ["train", "val", "test"]]
     else:
         raise NotImplementedError("Unknown dataset")
         
@@ -99,7 +101,7 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         node_feature_dims.append(21 + cat_add)
         node_encoder = NodeEncoder(emb_dim=args.emb_dim, feature_dims=node_feature_dims)
         edge_encoder =  EdgeEncoder(emb_dim=args.emb_dim, feature_dims=edge_feature_dims)
-    elif args.dataset.lower() in ["ogbg-molhiv", "ogbg-molpcba", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbace", "ogbg-molbbbp", "ogbg-molclintox", "ogbg-molmuv", "ogbg-molsider", "ogbg-moltoxcast", "ogbg-molfreesolv", "ogbg-mollipo"] and not args.do_drop_feat:
+    elif args.dataset.lower() in ["peptides-func", "ogbg-molhiv", "ogbg-molpcba", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbace", "ogbg-molbbbp", "ogbg-molclintox", "ogbg-molmuv", "ogbg-molsider", "ogbg-moltoxcast", "ogbg-molfreesolv", "ogbg-mollipo"] and not args.do_drop_feat:
         edge_feature_dims += add_1_to_all_in_ls(get_bond_feature_dims())
         node_feature_dims += add_1_to_all_in_ls(get_atom_feature_dims())
         print("node_feature_dims: ", node_feature_dims)
@@ -170,6 +172,9 @@ def get_loss(args):
         loss = torch.nn.BCEWithLogitsLoss()
         metric = "ap (ogb)" 
         metric_method = get_evaluator(args.dataset)
+    elif args.dataset.lower() == "peptides-func":
+        loss = torch.nn.BCEWithLogitsLoss()
+        metric = "ap" 
     else:
         raise NotImplementedError("No loss for this dataset")
     
