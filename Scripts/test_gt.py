@@ -4,6 +4,7 @@
 import math
 import time
 
+import numpy as np
 from torch_geometric.data import Data
 import torch_geometric
 import torch
@@ -122,9 +123,10 @@ def main():
 
     # quit()
     
-    do_vis = True
+    do_vis = False
 
-    for ds_name in ["zinc", "molhiv"]:
+    repeats = 10
+    for ds_name in ["molhiv", "zinc"]:
         print(f"Preparing {ds_name}")
 
         distances = []
@@ -133,46 +135,51 @@ def main():
             ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
         elif ds_name == "molhiv":
             ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-molhiv")
+            split_idx = ds.get_idx_split()
+            ds = ds[split_idx["train"]]
         else:
             raise 
         
         transform = CyclicAdjacencyTransform(debug=True)
         print(f"Running on {ds_name}")
-
-        start = time.time()
-        for i, data in enumerate(ds):        
-            
-
-            if do_vis:
-                data.x = data.x + 1
-                data.edge_attr = data.edge_attr + 1
-                visualize(data, f"{ds_name}_{i}", colors_feat)
-                data.x = data.x -1
-                data.edge_attr = data.edge_attr - 1
-            
-            
-            transformed_data = transform(data)
-            distances += transformed_data.edge_attr[:,1].tolist()
-
-            if do_vis:
-                print(f"After trafo: {transformed_data}")
-
-                visualize(transformed_data, f"{ds_name}_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+        runtimes = []
+        
+        
+        for r in range(repeats):
+            start = time.time()
+            for i, data in enumerate(ds):        
+                if do_vis:
+                    data.x = data.x + 1
+                    data.edge_attr = data.edge_attr + 1
+                    visualize(data, f"{ds_name}_{i}", colors_feat)
+                    data.x = data.x -1
+                    data.edge_attr = data.edge_attr - 1
                 
-                print(f"\r{i}", end="")
                 
-                if (i + 1) % 11 == 0:
-                    break
+                transformed_data = transform(data)
+                distances += transformed_data.edge_attr[:,1].tolist()
 
-        values = list(set(distances))
-        total = len(distances)
-        values.sort()
-        for value in values:
-            counts = len(list(filter(lambda x: x == value, distances)))
-            print(f"{value}: {counts}, \t{counts/total}%" )
+                if do_vis:
+                    print(f"After trafo: {transformed_data}")
 
-        end = time.time()
-        print(f"\rRuntime  {end - start:.2f}s on {ds_name}")
-    
+                    visualize(transformed_data, f"{ds_name}_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+                    
+                    print(f"\r{i}", end="")
+                    
+                    if (i + 1) % 11 == 0:
+                        break
+
+        # values = list(set(distances))
+        # total = len(distances)
+        # values.sort()
+        # for value in values:
+        #     counts = len(list(filter(lambda x: x == value, distances)))
+        #     print(f"{value}: {counts}, \t{counts/total}%" )
+
+            end = time.time()
+            print(f"\rRuntime  {end - start:.2f}s on {ds_name}")
+            runtimes.append(end - start)
+        print(f"\n{ds_name}\nRuntime:{np.mean(runtimes)} +/- {np.std(runtimes)}")
+        
 if __name__ == "__main__":
     main()
