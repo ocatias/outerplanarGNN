@@ -72,7 +72,15 @@ def load_dataset(args, config):
         split_dict = dataset.separate_data(args.seed, args.split)
         datasets = [split_dict["train"], split_dict["valid"], split_dict["test"]]
     elif args.dataset.lower() == "peptides-func":
-        datasets = [LRGBDataset(name ="Peptides-func", root=dir, split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+        datasets = [LRGBDataset(root=dir, name='Peptides-func', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "peptides-struct":
+        datasets = [LRGBDataset(root=dir, name='Peptides-struct', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "pascalvoc-sp":
+        datasets = [LRGBDataset(root=dir, name='PascalVOC-SP', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "coco-sp":
+        datasets = [LRGBDataset(root=dir, name='COCO-SP', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    elif args.dataset.lower() == "pcqm-contact":
+        datasets = [LRGBDataset(root=dir, name='PCQM-Contact', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
     else:
         raise NotImplementedError("Unknown dataset")
         
