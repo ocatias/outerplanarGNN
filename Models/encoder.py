@@ -52,7 +52,7 @@ class NodeEncoder(torch.nn.Module):
 #         return x_embedding
 class EdgeEncoder(torch.nn.Module):
     
-    def __init__(self, emb_dim, feature_dims = None):
+    def __init__(self, emb_dim, activation, feature_dims = None):
         super(EdgeEncoder, self).__init__()
         
         self.bond_embedding_list = torch.nn.ModuleList()
@@ -72,7 +72,14 @@ class EdgeEncoder(torch.nn.Module):
                 torch.nn.init.xavier_uniform_(emb.weight.data)
                 self.bond_embedding_list.append(emb)
             else:
-                self.mlps_for_num_feats.append(torch.nn.Linear(1, emb_dim, bias=False))
+                self.mlps_for_num_feats.append(torch.nn.Sequential(
+                    torch.nn.Linear(1, 4),
+                    activation,
+                    torch.nn.Linear(4, 16),
+                    activation,
+                    torch.nn.Linear(16, emb_dim),
+                    activation
+                ))
                 self.num_feats.append(i)
 
     def forward(self, edge_attr):

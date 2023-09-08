@@ -117,12 +117,12 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         edge_feature_dims += [4 + cat_add]
         node_feature_dims.append(21 + cat_add)
         node_encoder = NodeEncoder(emb_dim=args.emb_dim, feature_dims=node_feature_dims)
-        edge_encoder =  EdgeEncoder(emb_dim=args.emb_dim, feature_dims=edge_feature_dims)
+        edge_encoder =  EdgeEncoder(emb_dim=args.emb_dim, activation=activation, feature_dims=edge_feature_dims)
     elif args.dataset.lower() in ["peptides-func", "ogbg-molhiv", "ogbg-molpcba", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbace", "ogbg-molbbbp", "ogbg-molclintox", "ogbg-molmuv", "ogbg-molsider", "ogbg-moltoxcast", "ogbg-molfreesolv", "ogbg-mollipo"] and not args.do_drop_feat:
         edge_feature_dims += add_1_to_all_in_ls(get_bond_feature_dims())
         node_feature_dims += add_1_to_all_in_ls(get_atom_feature_dims())
         print("node_feature_dims: ", node_feature_dims)
-        node_encoder, edge_encoder = NodeEncoder(args.emb_dim, feature_dims=node_feature_dims), EdgeEncoder(args.emb_dim, feature_dims=edge_feature_dims)
+        node_encoder, edge_encoder = NodeEncoder(args.emb_dim, feature_dims=node_feature_dims), EdgeEncoder(args.emb_dim, activation=activation, feature_dims=edge_feature_dims)
     else:
         node_encoder, edge_encoder = lambda x: x, lambda x: x
             
