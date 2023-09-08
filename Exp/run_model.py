@@ -53,13 +53,14 @@ def main(args):
         num_tasks = train_loader.dataset.num_tasks
     except:
         num_tasks = 1
-        
-    print(f"#Features: {num_vertex_features}")
-    print(f"#Classes: {num_classes}")
-    print(f"#Tasks: {num_tasks}")
 
     model = get_model(args, num_classes, num_vertex_features, num_tasks)
     nr_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
+    print(f"#Features: {num_vertex_features}")
+    print(f"#Classes: {num_classes}")
+    print(f"#Tasks: {num_tasks}")
+    print(f"#Parameters: {nr_parameters}")
     model.to(device)
     optimizer, scheduler = get_optimizer_scheduler(model, args)
     loss_dict = get_loss(args)

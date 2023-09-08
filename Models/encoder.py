@@ -34,6 +34,8 @@ class EdgeEncoder(torch.nn.Module):
 
         if feature_dims is None:
             feature_dims = get_bond_feature_dims()
+            
+        print(f"edge feature_dims: {feature_dims}")
 
         for i, dim in enumerate(feature_dims):
             emb = torch.nn.Embedding(dim, emb_dim)
@@ -41,9 +43,11 @@ class EdgeEncoder(torch.nn.Module):
             self.bond_embedding_list.append(emb)
 
     def forward(self, edge_attr):
+        
         bond_embedding = 0
         for i in range(edge_attr.shape[1]):
             bond_embedding += self.bond_embedding_list[i](edge_attr[:,i])
+            
 
         return bond_embedding   
 
