@@ -21,7 +21,7 @@ from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 from Misc.scheduler import get_cosine_schedule_with_warmup
 
 def get_max_hamiltonian_cycle_length(dataset):
-    if dataset != "peptides_func":
+    if dataset == "peptides_func":
         return -1
     return -1
 
