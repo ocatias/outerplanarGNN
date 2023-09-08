@@ -32,10 +32,12 @@ def track_epoch(epoch, metric_name, train_result, val_result, test_result, lr):
         "LearningRate": lr
         })
     
-def print_progress(train_loss, val_loss, test_loss, metric_name, val_metric, test_metric):
+def print_progress(train_loss, val_loss, test_loss, metric_name, val_metric, test_metric, lr = None):
     print(f"\tTRAIN\t loss: {train_loss:6.4f}")
     print(f"\tVAL\t loss: {val_loss:6.4f}\t  {metric_name}: {val_metric:10.4f}")
     print(f"\tTEST\t loss: {test_loss:6.4f}\t  {metric_name}: {test_metric:10.4f}")
+    if lr is not None:
+        print(f"\tLearning rate: {lr:6.8f}")
     
 def main(args):
     print(args)
@@ -87,7 +89,7 @@ def main(args):
         val_results.append(val_result)
         test_results.append(test_result)
 
-        print_progress(train_result['total_loss'], val_result['total_loss'], test_result['total_loss'], eval_name, val_result[eval_name], test_result[eval_name])
+        print_progress(train_result['total_loss'], val_result['total_loss'], test_result['total_loss'], eval_name, val_result[eval_name], test_result[eval_name], optimizer.param_groups[0]['lr'])
 
         if use_tracking:
             track_epoch(epoch, eval_name, train_result, val_result, test_result, optimizer.param_groups[0]['lr'])

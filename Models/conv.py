@@ -38,14 +38,14 @@ import math
     
 ### GIN convolution along the graph structure
 class GINConv(MessagePassing):
-    def __init__(self, emb_dim, edge_encoder):
+    def __init__(self, emb_dim, edge_encoder, activation, between_repr_factor=2):
         '''
             emb_dim (int): node embedding dimensionality
         '''
 
         super(GINConv, self).__init__(aggr = "add")
-
-        self.mlp = torch.nn.Sequential(torch.nn.Linear(emb_dim, 2*emb_dim), torch.nn.BatchNorm1d(2*emb_dim), torch.nn.ReLU(), torch.nn.Linear(2*emb_dim, emb_dim))
+        self.activation = activation
+        self.mlp = torch.nn.Sequential(torch.nn.Linear(emb_dim, between_repr_factor*emb_dim), torch.nn.BatchNorm1d(between_repr_factor*emb_dim), self.activation, torch.nn.Linear(between_repr_factor*emb_dim, emb_dim))
         self.eps = torch.nn.Parameter(torch.Tensor([0]))
         self.edge_encoder = edge_encoder
             
@@ -56,21 +56,20 @@ class GINConv(MessagePassing):
         return out
 
     def message(self, x_j, edge_attr):
-
-        # print(f"{x_j.shape}, {edge_attr.shape}")
-        return F.relu(x_j + edge_attr)
+        return self.activation(x_j + edge_attr)
 
     def update(self, aggr_out):
         return aggr_out
 
 ### GCN convolution along the graph structure
 class GCNConv(MessagePassing):
-    def __init__(self, emb_dim, edge_encoder):
+    def __init__(self, emb_dim, edge_encoder, activation):
         super(GCNConv, self).__init__(aggr='add')
 
         self.linear = torch.nn.Linear(emb_dim, emb_dim)
         self.root_emb = torch.nn.Embedding(1, emb_dim)
         self.edge_encoder = edge_encoder
+        self.activation = activation
 
     def forward(self, x, edge_index, edge_attr):
         x = self.linear(x)
@@ -85,10 +84,10 @@ class GCNConv(MessagePassing):
 
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
-        return self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(x + self.root_emb.weight) * 1./deg.view(-1,1)
+        return self.propagate(edge_index, x=x, edge_attr = edge_embedding, norm=norm) + self.activation(x + self.root_emb.weight) * 1./deg.view(-1,1)
 
     def message(self, x_j, edge_attr, norm):
-        return norm.view(-1, 1) * F.relu(x_j + edge_attr)
+        return norm.view(-1, 1) * self.activation(x_j + edge_attr)
 
     def update(self, aggr_out):
         return aggr_out
@@ -100,7 +99,7 @@ class GNN_node(torch.nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layer, emb_dim, drop_ratio = 0.5, JK = "last", residual = False, gnn_type = 'gin', node_encoder = lambda x: x, edge_encoder = lambda x: x):
+    def __init__(self, num_layer, emb_dim, activation, drop_ratio = 0.5, JK = "last", residual = False, gnn_type = 'gin', node_encoder = lambda x: x, edge_encoder = lambda x: x, between_repr_factor=2):
         '''
             emb_dim (int): node embedding dimensionality
             num_layer (int): number of GNN message passing layers
@@ -109,6 +108,7 @@ class GNN_node(torch.nn.Module):
 
         super(GNN_node, self).__init__()
         self.num_layer = num_layer
+        self.activation = activation
         self.drop_ratio = drop_ratio
         self.JK = JK
         ### add residual connection or not
@@ -127,11 +127,11 @@ class GNN_node(torch.nn.Module):
 
         for layer in range(num_layer):
             if gnn_type == 'gin':
-                self.convs.append(GINConv(emb_dim, edge_encoder))
+                self.convs.append(GINConv(emb_dim, edge_encoder, between_repr_factor=between_repr_factor, activation=activation))
             elif gnn_type == 'gcn':
                 self.convs.append(GCNConv(emb_dim, edge_encoder))
             elif gnn_type == 'gat': 
-                self.convs.append(GATv2Conv(in_channels = emb_dim, out_channels = emb_dime, edge_dim  = 1))
+                self.convs.append(GATv2Conv(in_channels = emb_dim, out_channels = emb_dim, edge_dim  = 1))
             else:
                 raise ValueError('Undefined GNN type called {}'.format(gnn_type))
 
@@ -159,10 +159,10 @@ class GNN_node(torch.nn.Module):
                 #remove relu for the last layer
                 h = F.dropout(h, self.drop_ratio, training = self.training)
             else:
-                h = F.dropout(F.relu(h), self.drop_ratio, training = self.training)
+                h = F.dropout(self.activation(h), self.drop_ratio, training = self.training)
 
             if self.residual:
-                h += h_list[layer]
+                h = h + h_list[layer]
 
             h_list.append(h)
 

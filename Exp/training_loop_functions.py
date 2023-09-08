@@ -148,5 +148,7 @@ def step_scheduler(scheduler, args, val_loss):
         pass
     elif args.lr_scheduler == "ReduceLROnPlateau":
          scheduler.step(val_loss)
+    elif args.lr_scheduler == "Cosine":
+         scheduler.step()
     else:
         raise NotImplementedError(f'Scheduler {args.lr_scheduler} is not currently supported.')

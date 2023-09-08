@@ -50,9 +50,11 @@ def parse_args(passed_args=None):
                     
     # LR SCHEDULER
     parser.add_argument('--lr_scheduler', type=str, default='ReduceLROnPlateau',
-                    help='Learning rate decay scheduler (default: ReduceLROnPlateau; other options: StepLR, None; For details see PyTorch documentation)')
+                    help='Learning rate decay scheduler (default: ReduceLROnPlateau; other options: StepLR, Cosine, None; For details see PyTorch documentation)')
     parser.add_argument('--lr_scheduler_decay_rate', type=float, default=0.5,
                         help='Strength of lr decay (default: 0.5)')
+    parser.add_argument('--linear_warmup', type=int, default=0,
+                        help='(Cosine) Number of epochs with linear warmup (default: 0)')
 
     # For StepLR
     parser.add_argument('--lr_scheduler_decay_steps', type=int, default=50,
@@ -91,6 +93,13 @@ def parse_args(passed_args=None):
     parser.add_argument('--JK', type=str, default='last',
                     help='Type of jumping knowledge to use (default: last; options: last, sum, concat)') 
 
+    parser.add_argument('--between_repr_factor', type=int, default=2,
+                        help='(GIN) In a single message passing layer, dimemsions behave: emb_dim -> between_repr_factor*emb_dim -> inside_ml_mlp_factor (default: 2) ')
+    parser.add_argument('--residual_conection', type=int, default=0,
+                        help='Set 1 to use skip connections around each message passing layer (default: 0)')
+    parser.add_argument('--activation', type=str, default="relu",
+                        help='Activation function (default: relu; other options: gelu)')
+
     # Load partial args instead of command line args (if they are given)
     if passed_args is None:
         args = parser.parse_args()
@@ -116,5 +125,6 @@ def parse_args(passed_args=None):
     args.__dict__["use_node_encoder"] = args.node_encoder == 1
     args.__dict__["do_drop_feat"] = args.drop_feat == 1
     args.__dict__["use_cat"] = args.cat == 1
+    args.__dict__["use_residual_conection"] = args.residual_conection == 1
 
     return args

@@ -18,7 +18,7 @@ from Misc.drop_features import DropFeatures
 from Misc.add_zero_edge_attr import AddZeroEdgeAttr
 from Misc.pad_node_attr import PadNodeAttr
 from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
-
+from Misc.scheduler import get_cosine_schedule_with_warmup
 
 def get_max_hamiltonian_cycle_length(dataset):
     if dataset != "peptides_func":
@@ -104,6 +104,11 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
     
     cat_add = 1 if args.use_cat else 0
     
+    if args.activation.lower() == "relu":
+        activation = torch.nn.ReLU()
+    elif args.activation.lower() == "gelu":
+        activation = torch.nn.GELU()
+    
     if args.use_cat:
         node_feature_dims.append(6)
         edge_feature_dims += [8, get_max_hamiltonian_cycle_length(args.dataset)]
@@ -122,10 +127,10 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         node_encoder, edge_encoder = lambda x: x, lambda x: x
             
     if model in ["gin", "gcn", "gat"]:  
-        return GNN(num_classes, num_tasks, args.num_layers, args.emb_dim, 
+        return GNN(num_classes, num_tasks, activation, args.num_layers, args.emb_dim, 
                 gnn_type = model, virtual_node = args.use_virtual_node, drop_ratio = args.drop_out, JK = args.JK, 
                 graph_pooling = args.pooling, edge_encoder=edge_encoder, node_encoder=node_encoder, 
-                use_node_encoder = args.use_node_encoder, num_mlp_layers = args.num_mlp_layers)
+                use_node_encoder = args.use_node_encoder, num_mlp_layers = args.num_mlp_layers, between_repr_factor = args.between_repr_factor, residual = args.use_residual_conection)
     elif args.model.lower() == "mlp":
             return MLP(num_features=num_vertex_features, num_layers=args.num_layers, hidden=args.emb_dim, 
                     num_classes=num_classes, num_tasks=num_tasks, dropout_rate=args.drop_out, graph_pooling=args.pooling)
@@ -155,9 +160,14 @@ def get_optimizer_scheduler(model, args, finetune = False):
                                                                 factor=args.lr_scheduler_decay_rate,
                                                                 patience=args.lr_schedule_patience,
                                                                 verbose=True)
+    elif args.lr_scheduler == "Cosine":
+        scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps = args.linear_warmup, num_training_steps = args.epochs)
+    
     else:
         raise NotImplementedError(f'Scheduler {args.lr_scheduler} is not currently supported.')
 
+    print(f"optimizer: {optimizer}")
+    print(f"scheduler: {scheduler}")
     return optimizer, scheduler
 
 def get_loss(args):

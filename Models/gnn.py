@@ -1,19 +1,14 @@
 import torch
-from torch_geometric.nn import MessagePassing
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool, GlobalAttention, Set2Set
-import torch.nn.functional as F
-from torch.nn import Linear, ReLU, ModuleList, Parameter
-from torch_geometric.nn.inits import uniform
+from torch.nn import Linear, ModuleList, Parameter
 
 from Models.conv import GNN_node, GNN_node_Virtualnode
 
-from torch_scatter import scatter_mean
-
 class GNN(torch.nn.Module):
 
-    def __init__(self, num_classes, num_tasks, num_layer = 5, emb_dim = 300, 
+    def __init__(self, num_classes, num_tasks, activation, num_layer = 5, emb_dim = 300, 
                     gnn_type = 'gin', virtual_node = True, residual = False, drop_ratio = 0.5, JK = "last", graph_pooling = "mean",
-                    node_encoder = lambda x: x, edge_encoder = lambda x: x, use_node_encoder = True, graph_features = 0, num_mlp_layers = 1):
+                    node_encoder = lambda x: x, edge_encoder = lambda x: x, use_node_encoder = True, graph_features = 0, num_mlp_layers = 1, between_repr_factor=1):
         '''
             num_tasks (int): number of labels to be predicted
             virtual_node (bool): whether to add virtual node or not
@@ -21,7 +16,7 @@ class GNN(torch.nn.Module):
 
         super(GNN, self).__init__()
         
-        print("Old GNN implementation.")
+        print(f"Activation: {activation}")
 
         self.num_layer = num_layer
         self.drop_ratio = drop_ratio
@@ -34,15 +29,17 @@ class GNN(torch.nn.Module):
         self.use_node_encoder = use_node_encoder
         self.graph_features = graph_features
         self.num_mlp_layers = num_mlp_layers
+        self.activation = activation
         
         if self.num_layer < 1:
             raise ValueError("Number of GNN layers must be at least 1.")
 
         ### GNN to generate node embeddings
         if virtual_node:
+            raise ValueError
             self.gnn_node = GNN_node_Virtualnode(num_layer, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type, node_encoder=node_encoder, edge_encoder=edge_encoder)
         else:
-            self.gnn_node = GNN_node(num_layer, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type, node_encoder=node_encoder, edge_encoder=edge_encoder)
+            self.gnn_node = GNN_node(num_layer, emb_dim, JK = JK, drop_ratio = drop_ratio, residual = residual, gnn_type = gnn_type, node_encoder=node_encoder, edge_encoder=edge_encoder, between_repr_factor=between_repr_factor, activation = activation)
 
         self.set_mlp(graph_features)
 
@@ -52,10 +49,10 @@ class GNN(torch.nn.Module):
             self.pool = global_add_pool
         elif self.graph_pooling == "mean":
             self.pool = global_mean_pool
-        elif self.graph_pooling == "max":
-            self.pool = global_max_pool
-        elif self.graph_pooling == "attention":
-            self.pool = GlobalAttention(gate_nn = torch.nn.Sequential(torch.nn.Linear(emb_dim, 2*emb_dim), torch.nn.BatchNorm1d(2*emb_dim), torch.nn.ReLU(), torch.nn.Linear(2*emb_dim, 1)))
+        # elif self.graph_pooling == "max":
+        #     self.pool = global_max_pool
+        # elif self.graph_pooling == "attention":
+        #     self.pool = GlobalAttention(gate_nn = torch.nn.Sequential(torch.nn.Linear(emb_dim, 2*emb_dim), torch.nn.BatchNorm1d(2*emb_dim), activation, torch.nn.Linear(2*emb_dim, 1)))
 
     def forward(self, batched_data):
         h_node = self.gnn_node(batched_data)
@@ -109,7 +106,7 @@ class GNN(torch.nn.Module):
             new_mlp.append(new_linear_layer)
 
             if self.num_mlp_layers > 0 and i < self.num_mlp_layers - 1:
-                new_mlp.append(ReLU())
+                new_mlp.append(self.activation)
 
         new_mlp.requires_grad = True
         self.mlp = new_mlp
