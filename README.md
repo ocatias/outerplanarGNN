@@ -21,7 +21,7 @@ Install dependencies
 ```
 conda install pytorch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 -c pytorch
 conda install -c pyg pyg=2.2.0
-pip install -r requirements.txt
+pyton -m pip install -r requirements.txt
 ```
 
 ## Replicating the experiments
