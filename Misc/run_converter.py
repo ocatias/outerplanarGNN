@@ -40,6 +40,50 @@ def print_progress(train_loss, val_loss, test_loss, metric_name, val_metric, tes
 
 ## new stuff
 
+def to_aids_format(
+    g, # graph, in pyg format
+    i, # graph name
+    file, # BytesIO object
+    undirected: bool = True # whether to assume that g is undirected (no guarantees if set to False :D )
+):
+
+    row, col = g.edge_index.cpu().numpy()
+    edge_attr = np.ones(row.shape[0])
+
+    # graph header
+    file.write(f'# {i} {0} {g.num_nodes} {g.num_edges // 2}\n'.encode('latin1'))
+
+    # node handling
+    np.savetxt(file, np.ones([1,g.num_nodes]), fmt='%d')
+
+    # edge handling
+    if undirected:
+        mask = row < col
+        row = row[mask]
+        col = col[mask]
+        edge_attr = edge_attr[mask]
+    E = np.hstack([1 + row.reshape([-1,1]), 1 + col.reshape([-1,1]), edge_attr.reshape([-1,1])])
+    EL = E.reshape([1, -1])
+    np.savetxt(file, EL, fmt='%d')
+
+
+def batch_to_aids_format(batch, # a batch of pyg graphs
+                        undirected=True, # whether to assume that g is undirected (no guarantees if set to False :D )
+                        add_terminator=True # whether to add the final $ to the string 
+                        ):
+    import io   
+    bio = io.BytesIO()
+
+    for i in range(batch.num_graphs):
+        g = batch.get_example(i)
+        to_aids_format(g, i, bio, undirected=undirected)
+    
+    if add_terminator:
+        bio.write('$\n'.encode('latin1'))
+
+    return bio.getvalue().decode('latin1')
+
+
 def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': True}):
     '''
     This is the important function
@@ -61,83 +105,56 @@ def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': T
     import json
     import subprocess
 
-    tuc = 0
+    t_c_code = 0
 
+    t_graph_conversion = 0
+    t_torch_conversion = 0
+    t_json_conversion = 0
+
+    n_outerplanar = 0
+    n_total = 0
     for batch in loader:
 
+        tic = time.time()
         graphstring = ''
         
         # graph conversion to textual input format for all graphs in the current batch
-        # assumes undirected graphs
-        for i in range(batch.num_graphs):
-            g = batch.get_example(i)
-            graphstring += f'# {i} {0} {g.num_nodes} {g.num_edges // 2}\n'
-            graphstring += " ".join(['1' for _ in range(g.num_nodes)]) + '\n'
-            graphstring += " ".join([f'{g.edge_index[0,i] + 1} {g.edge_index[1,i] + 1} {1}' for i in range(g.edge_index.shape[1]) if g.edge_index[0,i] < g.edge_index[1,i]]) + '\n'
-        graphstring += '$\n'
+        # assumes undirected graphs and ignores labels
+        graphstring = batch_to_aids_format(batch, undirected=True, add_terminator=True)
+
+        toc = time.time()
+        t_graph_conversion += toc - tic
 
         tic = time.time()
         # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
-        cmd = [config['binfile'], '-']
+        cmd = [config['binfile'], '-s', '-']
         proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
         toc = time.time()
+        t_c_code += toc - tic
 
-        tuc += toc - tic
-
-
+        tic = time.time()
         # parsing of the results (directly from stdout of the process)
-        jsobjects = json.loads(proc.stdout.decode("utf-8"))
-        # print(jsobjects)
+        jstr = proc.stdout.decode("utf-8")
+        jsobjects = json.loads(jstr)
+
+        toc = time.time()
+        t_json_conversion += toc - tic
+
+        for g in jsobjects:
+            if g['isOuterplanar']:
+                n_outerplanar += 1
+            n_total += 1
 
         # TODO: don't know, yet, how to best store this information in node or edge features
     
     if config['verbose']:
-        print(f'time spent abroad: {tuc}')
+        print(f'time spent for torch conversion: {t_torch_conversion:.2f}s')
+        print(f'time spent for graph conversion: {t_graph_conversion:.2f}s')
+        print(f'time spent for json parsing: {t_json_conversion:.2f}s')
+        print(f'time spent abroad: {t_c_code:.2f}s')
+        print(f'{n_outerplanar} out of {n_total} graphs are outerplanar')
 
-
-# def plain_bagels_allyoucaneat(loader, config={'binfile': './outerplanaritytest', 'verbose': True}):
-#     '''
-#     Given a dataloader, compute for each batch individually
-#     1) if the graphs in the batch are outerplanar
-#     2)  the Hamiltonian cycles of the outerplanar blocks
-
-#     To this end, all data is transformed to a textual format, piped to an external program 
-#     which pipes its results back which is then parsed and stored in the tensors (TODO).
-#     '''
-#     import json
-#     import subprocess
-
-#     graphstring = ''
-
-#     for batch in loader:
-
-#         # graph conversion to textual input format for all graphs in the current batch
-#         # assumes undirected graphs
-#         for i in range(batch.num_graphs):
-#             g = batch.get_example(i)
-#             graphstring += f'# {i} {0} {g.num_nodes} {g.num_edges // 2}\n'
-#             graphstring += " ".join(['1' for _ in range(g.num_nodes)]) + '\n'
-#             graphstring += " ".join([f'{g.edge_index[0,i] + 1} {g.edge_index[1,i] + 1} {1}' for i in range(g.edge_index.shape[1]) if g.edge_index[0,i] < g.edge_index[1,i]]) + '\n'
-    
-#     graphstring += '$\n'
-
-
-#     tic = time.time()
-
-#     # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
-#     cmd = [config['binfile'], '-']
-#     proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
-
-#     toc = time.time()
-#     if config['verbose']:
-#         print(f'time spent abroad: {toc -  tic}')
-
-#     # parsing of the results (directly from stdout of the process)
-#     jsobjects = json.loads(proc.stdout.decode("utf-8"))
-#     # print(jsobjects)
-
-#     # TODO: don't know, yet, how to best store this information in node or edge features
-
+    return n_outerplanar, n_total
 
     
 def main(args):
@@ -165,27 +182,19 @@ def main(args):
 
     tic = time.time()
 
-    plain_bagels(train_loader)
+    n_outerplanar, n_total = plain_bagels(train_loader)
+    a, b = plain_bagels(val_loader)
+    c, d = plain_bagels(test_loader)
+    n_outerplanar += a + c
+    n_total += b + d
 
     toc = time.time()
 
     print(f'time for conversion and computation {toc -  tic}')
 
-    # tic = time.time()
-
-    # plain_bagels_allyoucaneat(train_loader)
-
-    # toc = time.time()
-
-    # print(f'time for conversion and computation {toc -  tic}')
-
-
-
+    return n_outerplanar, n_total
 
 
 def run(passed_args = None):
     args = parse_args(passed_args)
     return main(args)
-
-if __name__ == "__main__":
-    run()
