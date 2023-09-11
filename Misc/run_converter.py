@@ -127,7 +127,7 @@ def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': T
 
         tic = time.time()
         # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
-        cmd = [config['binfile'], '-s', '-']
+        cmd = [config['binfile'], '-sw', '-']
         proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
         toc = time.time()
         t_c_code += toc - tic
@@ -135,6 +135,7 @@ def plain_bagels(loader, config={'binfile': './outerplanaritytest', 'verbose': T
         tic = time.time()
         # parsing of the results (directly from stdout of the process)
         jstr = proc.stdout.decode("utf-8")
+        # print(jstr)
         jsobjects = json.loads(jstr)
 
         toc = time.time()
