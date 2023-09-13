@@ -6,16 +6,19 @@
             CAT.
 """
 
+import io
 import time
 import subprocess
 import json
-from collections import defaultdict
+from collections import defaultdict, ChainMap
 
 from Misc.graph_edit import *
+from Misc.utils import list_of_lists_to_list
 
 import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
+from torch_geometric.utils import coalesce, sort_edge_index
 
 #
 # Constants
@@ -41,6 +44,7 @@ label_edge_pool_art = 4
 label_edge_art_original = 5
 label_edge_block_ham = 6
 label_edge_pool_ham = 7
+label_edge_shortcut = 8
 
 #
 # CODE
@@ -52,17 +56,27 @@ def maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label, nr_edges = 1):
         new_feat[:, pos_edge_type] = label
         return torch.cat((edge_attr, new_feat), dim=0)
 
-def get_hamiltonian_cycles(g: Data, config):
-    graphstring = f'# {0} {0} {g.num_nodes} {g.num_edges // 2}\n'
-    graphstring += " ".join(['1' for _ in range(g.num_nodes)]) + '\n'
-    graphstring += " ".join([f'{g.edge_index[0,i] + 1} {g.edge_index[1,i] + 1} {1}' for i in range(g.edge_index.shape[1]) if g.edge_index[0,i] < g.edge_index[1,i]]) + '\n'
-    graphstring += '$\n'
-    
+def get_hamiltonian_cycles(g: Data, config): 
+    from Misc.run_converter import to_aids_format
+
     tic = time.time()
+    graphstring = ''
+    
+    # graph conversion to textual input format for all graphs in the current batch
+    # assumes undirected graphs and ignores labels
+    file = io.BytesIO()
+    to_aids_format(g, 0, file, undirected=True)
+    graphstring = file.getvalue().decode('latin1')
+    
     # the actual computation of outerplanarity and Hamiltonian cycles in a subprocess
-    cmd = [config['binfile'], '-']
+    cmd = [config['binfile'], '-sw', '-']
     proc = subprocess.run(args=cmd, capture_output=True, input=graphstring.encode("utf-8"))
-    jsobjects = json.loads(proc.stdout.decode("utf-8"))
+
+    # parsing of the results (directly from stdout of the process)
+    jstr = proc.stdout.decode("utf-8")
+    # print(jstr)
+    jsobjects = json.loads(jstr)
+
     return jsobjects
 
 def edge_in_ham_cycles(edge, list_vertices_in_ham_cycle):
@@ -117,17 +131,71 @@ class CyclicAdjacencyTransform(BaseTransform):
             edge_attr = torch.cat((torch.zeros([edge_attr.shape[0], 2]), edge_attr), dim = 1)
 
 
-        ham_cycle_info = get_hamiltonian_cycles(data, self.config)
-        ham_cycles = ham_cycle_info[0]["hamiltonianCycles"]
+        ham_cycle_info = get_hamiltonian_cycles(data, self.config)[0]
+        # ham_cycles = ham_cycle_info[0]["hamiltonianCycles"]
+        print(ham_cycle_info)
+        
+        
+        
+        ls_ham_cycles_dict = list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))
+        print(f"ham_cycles_dict: {ls_ham_cycles_dict}")
+        
+        # Different hamiltonian cycles in different connected components can have the same id: make id unique
+        temp_dict = {}
+        latest_key = 0
+        for dictionary in ls_ham_cycles_dict:
+            dictionary = dict(sorted(dictionary.items(), key=lambda item: int(item[0]), reverse=True))
+            print(f"dictionary: {dictionary}")
+            for (key, value) in dictionary.items():
+                key = int(key)
+                if key >= latest_key:
+                    latest_key -= 1
+                    key = latest_key 
+                temp_dict[key] = value
+        ham_cycles_dict = temp_dict
+        print(f"temp_dict: {temp_dict}")
+        
+        blocks = dict(ChainMap(*list(map(lambda x: x["blocks"], ham_cycle_info['ccs']))))
+
+        print(f"blocks: {len(blocks)}, ls_ham_cycles_dict: {len(ham_cycles_dict)}, ccs: {len(ham_cycle_info['ccs'])}")
+        # if len(blocks) != len(ham_cycles_dict) or len(ham_cycle_info['ccs']) > 1:
+        #     print("quitting")
+        #     if has_vertex_feat:
+        #         data.x = x.type(data.x.type())
+        #     if has_edge_attr:
+        #         data.edge_attr = edge_attr.type(data.edge_attr.type())
+        #     return data
+        
+        print(f"ham_cycles_dict: {ham_cycles_dict}")
+
+        ham_cycles = list(ham_cycles_dict.values())
+        print(f"ham_cycles: {ham_cycles}")
+        
+        shortcut_edges = list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs']))
+        shortcut_edges = list_of_lists_to_list(shortcut_edges)
+        print(f"shortcut_edges: {shortcut_edges}")
+        
         articulation_vertices = []
-        node_types = {}
         
         # Dict to map vertices in ham cycle to id of cycle
         ham_cycle_dict = defaultdict(lambda: [])
-        for i, ls in enumerate(ham_cycles):
+        
+        ham_cycle_id_to_raw_id = {}
+        raw_id_to_block_vertex = {}
+
+
+        ham_cycles_dict = dict(ChainMap(*ls_ham_cycles_dict))
+         
+        # for i, ls in enumerate(ham_cycles):
+        #     for vertex in ls:
+        #         ham_cycle_dict[(vertex)].append(int(i))
+
+        for i, (key, ls) in enumerate(ham_cycles_dict.items()):
+            ham_cycle_id_to_raw_id[i] = key
             for vertex in ls:
-                ham_cycle_dict[(vertex)].append(int(i))
-                
+                ham_cycle_dict[(vertex)].append(i)
+              
+        print(f"ham_cycle_id_to_raw_id: {ham_cycle_id_to_raw_id}")  
         vertices_in_ham_cycles = list(set(ham_cycle_dict.keys()))
         vertices_in_ham_cycles.sort()       
         new_edge_index = torch.clone(edge_index)
@@ -268,6 +336,7 @@ class CyclicAdjacencyTransform(BaseTransform):
             idx = nr_vertices_in_graph_with_pooling + created_vertices
             created_vertices += 1
             cycle_to_block_vertex[cycle_idx] = idx
+            raw_id_to_block_vertex[ham_cycle_id_to_raw_id[cycle_idx]] = idx
             if has_vertex_feat:
                 new_feat = torch.cat((torch.tensor([label_block_vertex]), torch.zeros(x_shape)))
                 x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
@@ -282,6 +351,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                     new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
                     
+        print(f"cycle_to_block_vertex: {cycle_to_block_vertex}")
 
         nr_vertices_in_graph_with_block = nr_vertices_in_graph_with_pooling + created_vertices
         
@@ -315,6 +385,26 @@ class CyclicAdjacencyTransform(BaseTransform):
             new_edge_index = add_undir_edge(new_edge_index, block, idx) 
             edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_ham, 2)
         nr_vertices_in_new_graph += 1
+        
+        # Add shortcut edges
+        print(f"raw_id_to_block_vertex: {raw_id_to_block_vertex}")
+        for edge in shortcut_edges:
+            print(edge)
+            p, q = edge[0], edge[1]
+            print(f"p: {p}, q: {q}")
+            # If incident vertices are block vertices then map them to the newly created block vertices
+            if p < 0 and p in raw_id_to_block_vertex:
+                p = raw_id_to_block_vertex[p]
+            if q < 0 and q in raw_id_to_block_vertex:
+                q = raw_id_to_block_vertex[q]
+                
+            if p < 0 or q < 0:
+                continue
+                
+            print(f"p: {p}, q: {q}")
+            new_edge_index = add_undir_edge(new_edge_index, p, q) 
+            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+        
         
         # Clean up edges: move edges from articulation vertices in the hamiltonian cycles to the articulation representation vertices
         for i in edges_outside_ham_cycle:

@@ -1,3 +1,6 @@
+def list_of_lists_to_list(ls):
+    return [item for sublist in ls for item in sublist]
+
 def edge_tensor_to_list(edge_tensor):
     edge_list = []
     for i in range(edge_tensor.shape[1]):
