@@ -393,10 +393,10 @@ class CyclicAdjacencyTransform(BaseTransform):
             p, q = edge[0], edge[1]
             print(f"p: {p}, q: {q}")
             # If incident vertices are block vertices then map them to the newly created block vertices
-            if p < 0 and p in raw_id_to_block_vertex:
-                p = raw_id_to_block_vertex[p]
-            if q < 0 and q in raw_id_to_block_vertex:
-                q = raw_id_to_block_vertex[q]
+            if p < 0 and str(p) in raw_id_to_block_vertex:
+                p = raw_id_to_block_vertex[str(p)]
+            if q < 0 and str(q) in raw_id_to_block_vertex:
+                q = raw_id_to_block_vertex[str(q)]
                 
             if p < 0 or q < 0:
                 continue
