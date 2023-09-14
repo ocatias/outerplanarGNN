@@ -172,7 +172,7 @@ class CyclicAdjacencyTransform(BaseTransform):
         is_ham_cycle = {}
         for key in keys:
             new_key = abs(int(key)) - 1
-            og_block_idx_to_new_idx[key] = new_key
+            og_block_idx_to_new_idx[int(key)] = new_key
             
             # Rename
             blocks_dict[new_key] = blocks_dict[key]
@@ -185,6 +185,7 @@ class CyclicAdjacencyTransform(BaseTransform):
             else:
                 is_ham_cycle[new_key] = False
                 
+        print(f"og_block_idx_to_new_idx: {og_block_idx_to_new_idx}")
         print("\nAfter renaming")
         print(f"ham_cycles_dict: {ham_cycles_dict}")
         print(f"blocks_dict: {blocks_dict}")
@@ -333,6 +334,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                     new_edge_index = add_dir_edge(new_edge_index, v1, v2)
                     
                     if has_edge_attr:
+                        edge_attr[i, pos_edge_type] = label_edge_original
                         new_feat = torch.zeros([1, e_shape])
                         new_feat[0, pos_edge_type] = label_edge_original
                         
@@ -458,22 +460,22 @@ class CyclicAdjacencyTransform(BaseTransform):
         
         # Add shortcut edges
         # print(f"raw_id_to_block_vertex: {raw_id_to_block_vertex}")
-        # for edge in shortcut_edges:
-        #     print(edge)
-        #     p, q = edge[0], edge[1]
-        #     print(f"p: {p}, q: {q}")
-        #     # If incident vertices are block vertices then map them to the newly created block vertices
-        #     if p < 0 and str(p) in raw_id_to_block_vertex:
-        #         p = raw_id_to_block_vertex[str(p)]
-        #     if q < 0 and str(q) in raw_id_to_block_vertex:
-        #         q = raw_id_to_block_vertex[str(q)]
+        for edge in shortcut_edges:
+            print(edge)
+            p, q = edge[0], edge[1]
+            print(f"p: {p}, q: {q}")
+            # If incident vertices are block vertices then map them to the newly created block vertices
+            if p < 0:
+                p = cycle_to_block_vertex[og_block_idx_to_new_idx[p]]
+            if q < 0:
+                q = cycle_to_block_vertex[og_block_idx_to_new_idx[q]]
                 
-        #     if p < 0 or q < 0:
-        #         continue
+            if p < 0 or q < 0:
+                continue
                 
-        #     print(f"p: {p}, q: {q}")
-        #     new_edge_index = add_undir_edge(new_edge_index, p, q) 
-        #     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+            print(f"p: {p}, q: {q}")
+            new_edge_index = add_undir_edge(new_edge_index, p, q) 
+            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
         
         
         # Clean up edges: move edges from articulation vertices in the hamiltonian cycles to the articulation representation vertices
