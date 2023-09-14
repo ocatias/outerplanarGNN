@@ -132,32 +132,64 @@ class CyclicAdjacencyTransform(BaseTransform):
 
 
         ham_cycle_info = get_hamiltonian_cycles(data, self.config)[0]
-        # ham_cycles = ham_cycle_info[0]["hamiltonianCycles"]
-        print(ham_cycle_info)
+        print(f"ham_cycle_info: {ham_cycle_info}")
         
-        
-        
-        ls_ham_cycles_dict = list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))
-        print(f"ham_cycles_dict: {ls_ham_cycles_dict}")
+        # ls_ham_cycles_dict = list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))
+        # print(f"ham_cycles_dict: {ls_ham_cycles_dict}")
         
         # Different hamiltonian cycles in different connected components can have the same id: make id unique
-        temp_dict = {}
-        latest_key = 0
-        for dictionary in ls_ham_cycles_dict:
-            dictionary = dict(sorted(dictionary.items(), key=lambda item: int(item[0]), reverse=True))
-            print(f"dictionary: {dictionary}")
-            for (key, value) in dictionary.items():
-                key = int(key)
-                if key >= latest_key:
-                    latest_key -= 1
-                    key = latest_key 
-                temp_dict[key] = value
-        ham_cycles_dict = temp_dict
-        print(f"temp_dict: {temp_dict}")
+        # temp_dict = {}
+        # latest_key = 0
+        # for dictionary in ls_ham_cycles_dict:
+        #     dictionary = dict(sorted(dictionary.items(), key=lambda item: int(item[0]), reverse=True))
+        #     print(f"dictionary: {dictionary}")
+        #     for (key, value) in dictionary.items():
+        #         key = int(key)
+        #         if key >= latest_key:
+        #             latest_key -= 1
+        #             key = latest_key 
+        #         temp_dict[key] = value
+        # ham_cycles_dict = temp_dict
+        # print(f"temp_dict: {temp_dict}")
         
-        blocks = dict(ChainMap(*list(map(lambda x: x["blocks"], ham_cycle_info['ccs']))))
-
-        print(f"blocks: {len(blocks)}, ls_ham_cycles_dict: {len(ham_cycles_dict)}, ccs: {len(ham_cycle_info['ccs'])}")
+        blocks_dict = dict(ChainMap(*list(map(lambda x: x["blocks"], ham_cycle_info['ccs']))))
+        blocks_ls = list(blocks_dict.values())
+        
+        ham_cycles_dict = dict(ChainMap(*list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))))
+        ham_cycles_ls = list(ham_cycles_dict.values())
+        
+        sorted_ham_cycles_ls = list(map(lambda ls: sorted(ls), ham_cycles_ls))
+      
+        print("\nBefore renaming")
+        print(f"ham_cycles_dict: {ham_cycles_dict}")
+        print(f"ham_cycles_ls: {ham_cycles_ls}")
+        print(f"blocks_dict: {blocks_dict}")
+        print(f"blocks_ls: {blocks_ls}")
+        
+        # Change from the negative index to an index starting at 0 and increasing
+        og_block_idx_to_new_idx = {}
+        keys = list(blocks_dict.keys())
+        is_ham_cycle = {}
+        for key in keys:
+            new_key = abs(int(key)) - 1
+            og_block_idx_to_new_idx[key] = new_key
+            
+            # Rename
+            blocks_dict[new_key] = blocks_dict[key]
+            del blocks_dict[key]
+            
+            if key in ham_cycles_dict:
+                ham_cycles_dict[new_key] = ham_cycles_dict[key]
+                del ham_cycles_dict[key]
+                is_ham_cycle[new_key] = True
+            else:
+                is_ham_cycle[new_key] = False
+                
+        print("\nAfter renaming")
+        print(f"ham_cycles_dict: {ham_cycles_dict}")
+        print(f"blocks_dict: {blocks_dict}")
+        print("\n")
+      
         # if len(blocks) != len(ham_cycles_dict) or len(ham_cycle_info['ccs']) > 1:
         #     print("quitting")
         #     if has_vertex_feat:
@@ -166,37 +198,44 @@ class CyclicAdjacencyTransform(BaseTransform):
         #         data.edge_attr = edge_attr.type(data.edge_attr.type())
         #     return data
         
-        print(f"ham_cycles_dict: {ham_cycles_dict}")
+        # print(f"ham_cycles_dict: {ham_cycles_dict}")
 
-        ham_cycles = list(ham_cycles_dict.values())
-        print(f"ham_cycles: {ham_cycles}")
+        # ham_cycles = list(ham_cycles_dict.values())
+        # print(f"ham_cycles: {ham_cycles}")
         
-        shortcut_edges = list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs']))
-        shortcut_edges = list_of_lists_to_list(shortcut_edges)
-        print(f"shortcut_edges: {shortcut_edges}")
+        shortcut_edges = list_of_lists_to_list(list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs'])))
+        # print(f"shortcut_edges: {shortcut_edges}")
+        
         
         articulation_vertices = []
         
         # Dict to map vertices in ham cycle to id of cycle
-        ham_cycle_dict = defaultdict(lambda: [])
+        vertices_to_block_idx = defaultdict(lambda: [])
         
-        ham_cycle_id_to_raw_id = {}
-        raw_id_to_block_vertex = {}
+        # ham_cycle_id_to_raw_id = {}
+        # raw_id_to_block_vertex = {}
 
 
-        ham_cycles_dict = dict(ChainMap(*ls_ham_cycles_dict))
+        # ham_cycles_dict = dict(ChainMap(*ls_ham_cycles_dict))
          
         # for i, ls in enumerate(ham_cycles):
         #     for vertex in ls:
         #         ham_cycle_dict[(vertex)].append(int(i))
 
-        for i, (key, ls) in enumerate(ham_cycles_dict.items()):
-            ham_cycle_id_to_raw_id[i] = key
-            for vertex in ls:
-                ham_cycle_dict[(vertex)].append(i)
+        
+
+        # for i, (key, ls) in enumerate(blocks_dict.items()):
+        #     ham_cycle_id_to_raw_id[i] = key
+        #     for vertex in ls:
+        #         vertices_to_block_idx[(vertex)].append(i)
+        
+        for (key, block) in blocks_dict.items():
+            for vertex in block:
+                vertices_to_block_idx[(vertex)].append(key)
               
-        print(f"ham_cycle_id_to_raw_id: {ham_cycle_id_to_raw_id}")  
-        vertices_in_ham_cycles = list(set(ham_cycle_dict.keys()))
+        print(f"vertices_to_block_idx: {vertices_to_block_idx}")
+        
+        vertices_in_ham_cycles = list(set(vertices_to_block_idx.keys()))
         vertices_in_ham_cycles.sort()       
         new_edge_index = torch.clone(edge_index)
         nr_vertices_in_og_graph = get_nr_vertices(data)
@@ -212,7 +251,15 @@ class CyclicAdjacencyTransform(BaseTransform):
         already_seen_vertices = []
         if has_vertex_feat:
             labels = [label_original_Vertex for _ in range(nr_vertices_in_og_graph)]
-        for cycle_idx, cycle in enumerate(ham_cycles):
+            
+        for (block_idx, cycle) in blocks_dict.items():
+            # Do not need to duplicate nodes if they are not in a Hamiltonian cycle
+            if not is_ham_cycle[block_idx]:
+                for vertex in cycle:
+                    vertex_to_original_dict[(vertex, block_idx)] = vertex
+                    already_seen_vertices.append(vertex)
+                continue
+            
             for vertex in cycle:
                 # Create original vertex entry
                 if vertex in already_seen_vertices:
@@ -227,33 +274,36 @@ class CyclicAdjacencyTransform(BaseTransform):
                     already_seen_vertices.append(vertex)
                     if has_vertex_feat:
                         labels[idx] = label_ham_cycle
-                vertex_to_original_dict[(vertex, cycle_idx)] = idx
+                vertex_to_original_dict[(vertex, block_idx)] = idx
 
                 # Duplicate
                 idx = nr_vertices_in_og_graph + created_vertices
                 created_vertices += 1
-                vertex_to_duplicate_dict[(vertex, cycle_idx)] = idx
+                vertex_to_duplicate_dict[(vertex, block_idx)] = idx
                 if has_vertex_feat:
                     x = torch.cat((x, torch.unsqueeze(x[vertex], 0)), dim=0)
                     labels.append(label_ham_cycle)
-
+        
+        print(f"vertex_to_duplicate_dict: {vertex_to_duplicate_dict}\n")
         if has_vertex_feat:
             x = torch.cat((torch.unsqueeze(torch.tensor(labels), 1), x), dim= 1)
             
-        edges_outside_ham_cycle = []
-        get_duplicate_vertex = lambda vertex, cycle: vertex_to_duplicate_dict[(vertex, cycle)]
+        edges_outside_blocks = []
+        get_duplicate_vertex = lambda vertex, block_idx: vertex_to_duplicate_dict[(vertex, block_idx)]
 
         for i in range(edge_index.shape[1]):
-            ham_cycle_id = get_ham_cycle(edge_index[:, i], ham_cycle_dict, ham_cycles)
+            ham_cycle_id = get_ham_cycle(edge_index[:, i], vertices_to_block_idx, ham_cycles_ls)
             edge = (int(edge_index[0, i]), int(edge_index[1, i]))
             
             # If edge is part of hamiltionian cycle: clone / orient it
             if ham_cycle_id is not None:   
+                if not is_ham_cycle[ham_cycle_id]:
+                    continue
+                    
                 if has_edge_attr:
                     edge_attr[i, pos_edge_type] = label_edge_ham_cycle    
                     
-                
-                ham_cycle = ham_cycles[ham_cycle_id]
+                ham_cycle = blocks_dict[ham_cycle_id]
                 pos_in_ham_cycle1, pos_in_ham_cycle2 = ham_cycle.index(int(edge[0])), ham_cycle.index(int(edge[1]))
                 modulus = len(ham_cycle) 
 
@@ -295,12 +345,13 @@ class CyclicAdjacencyTransform(BaseTransform):
                         edge_attr = torch.cat((edge_attr, new_feat), dim=0)
                         
                 for j in [0, 1]:
-                    if len(ham_cycle_dict[int(edge[j])]) > 1:
+                    # todo: be careful here (what about blocks?)
+                    if len(vertices_to_block_idx[int(edge[j])]) > 1:
                         articulation_vertices += [int(edge[j])]
             else:
                 # Check if vertices incident to edge are articulation vertices
                 articulation_vertices += [int(edge[j]) for j in [0, 1] if (int(edge[j]) in vertices_in_ham_cycles)]
-                edges_outside_ham_cycle += [i]
+                edges_outside_blocks += [i]
             
         nr_vertices_in_graph_with_duplication = nr_vertices_in_og_graph + created_vertices
         articulation_vertices = list(set(articulation_vertices))
@@ -308,15 +359,21 @@ class CyclicAdjacencyTransform(BaseTransform):
         # Create vertices that pool the representation for a single vertex
         created_vertices = 0
         vertex_to_pooling = {}
-        for cycle_idx, cycle in enumerate(ham_cycles):
-            for vertex in cycle:
+        for (block_idx, block) in blocks_dict.items():
+            
+            if not is_ham_cycle[block_idx]:
+                for vertex in block:
+                    vertex_to_pooling[(vertex, block_idx)] = vertex
+                continue
+            
+            for vertex in block:
                 if vertex in articulation_vertices:
                     idx = nr_vertices_in_graph_with_duplication + created_vertices
                     created_vertices += 1
                     
-                    vertex_to_pooling[(vertex, cycle_idx)] = idx
-                    vertex_og = vertex_to_original_dict[(vertex, cycle_idx)]
-                    vertex_duplicate = vertex_to_duplicate_dict[(vertex, cycle_idx)]
+                    vertex_to_pooling[(vertex, block_idx)] = idx
+                    vertex_og = vertex_to_original_dict[(vertex, block_idx)]
+                    vertex_duplicate = vertex_to_duplicate_dict[(vertex, block_idx)]
                    
                     new_edge_index = add_undir_edge(new_edge_index, vertex_og, idx)             
                     new_edge_index = add_undir_edge(new_edge_index, vertex_duplicate, idx)
@@ -332,24 +389,32 @@ class CyclicAdjacencyTransform(BaseTransform):
         # Create block vertices
         created_vertices = 0
         cycle_to_block_vertex = {}
-        for cycle_idx, cycle in enumerate(ham_cycles):
+        for (block_idx, block) in blocks_dict.items():
             idx = nr_vertices_in_graph_with_pooling + created_vertices
             created_vertices += 1
-            cycle_to_block_vertex[cycle_idx] = idx
-            raw_id_to_block_vertex[ham_cycle_id_to_raw_id[cycle_idx]] = idx
+            
+            # todo: probably still need this
+            cycle_to_block_vertex[block_idx] = idx
+            # raw_id_to_block_vertex[ham_cycle_id_to_raw_id[block_idx]] = idx
+            
             if has_vertex_feat:
                 new_feat = torch.cat((torch.tensor([label_block_vertex]), torch.zeros(x_shape)))
                 x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
             
-            for vertex in cycle:
-                new_edge_index = add_undir_edge(new_edge_index, vertex_to_original_dict[(vertex, cycle_idx)], idx)
-                new_edge_index = add_undir_edge(new_edge_index, vertex_to_duplicate_dict[(vertex, cycle_idx)], idx)
-                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 4)
+            for vertex in block:
                 
-                if vertex in articulation_vertices:
-                    pooling_vertex = vertex_to_pooling[(int(vertex), cycle_idx)]
-                    new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
-                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
+                if is_ham_cycle[block_idx]:
+                    new_edge_index = add_undir_edge(new_edge_index, vertex_to_original_dict[(vertex, block_idx)], idx)
+                    new_edge_index = add_undir_edge(new_edge_index, vertex_to_duplicate_dict[(vertex, block_idx)], idx)
+                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 4)
+                    
+                    if vertex in articulation_vertices:
+                        pooling_vertex = vertex_to_pooling[(int(vertex), block_idx)]
+                        new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
+                        edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
+                else:
+                    new_edge_index = add_undir_edge(new_edge_index, vertex_to_original_dict[(vertex, block_idx)], idx)
+                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 2)
                     
         print(f"cycle_to_block_vertex: {cycle_to_block_vertex}")
 
@@ -366,10 +431,13 @@ class CyclicAdjacencyTransform(BaseTransform):
                 new_feat = torch.cat((torch.tensor([label_articulation_vertex]), x[articulation_vertex, 1:]))
                 x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
 
-            for cycle_idx, cycle in enumerate(ham_cycles):
-                if articulation_vertex in cycle:
+            for (block_idx, block) in blocks_dict.items():
+                # if not is_ham_cycle[block_idx]:
+                #     continue
+                
+                if articulation_vertex in block:
                     # Edge from articulation vertex to pooling vertex
-                    pooling_vertex = vertex_to_pooling[(int(articulation_vertex), cycle_idx)]
+                    pooling_vertex = vertex_to_pooling[(int(articulation_vertex), block_idx)]
                     new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_art, 2)
                     
@@ -377,6 +445,8 @@ class CyclicAdjacencyTransform(BaseTransform):
         
         # Add a virtual node pooling blocks:
         idx = nr_vertices_in_new_graph
+        
+        print(f"Virtual pooling idx: {idx}")
         if has_vertex_feat:
             new_feat = torch.cat((torch.tensor([label_global_pool]), torch.zeros(x_shape)))
             x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
@@ -387,27 +457,27 @@ class CyclicAdjacencyTransform(BaseTransform):
         nr_vertices_in_new_graph += 1
         
         # Add shortcut edges
-        print(f"raw_id_to_block_vertex: {raw_id_to_block_vertex}")
-        for edge in shortcut_edges:
-            print(edge)
-            p, q = edge[0], edge[1]
-            print(f"p: {p}, q: {q}")
-            # If incident vertices are block vertices then map them to the newly created block vertices
-            if p < 0 and str(p) in raw_id_to_block_vertex:
-                p = raw_id_to_block_vertex[str(p)]
-            if q < 0 and str(q) in raw_id_to_block_vertex:
-                q = raw_id_to_block_vertex[str(q)]
+        # print(f"raw_id_to_block_vertex: {raw_id_to_block_vertex}")
+        # for edge in shortcut_edges:
+        #     print(edge)
+        #     p, q = edge[0], edge[1]
+        #     print(f"p: {p}, q: {q}")
+        #     # If incident vertices are block vertices then map them to the newly created block vertices
+        #     if p < 0 and str(p) in raw_id_to_block_vertex:
+        #         p = raw_id_to_block_vertex[str(p)]
+        #     if q < 0 and str(q) in raw_id_to_block_vertex:
+        #         q = raw_id_to_block_vertex[str(q)]
                 
-            if p < 0 or q < 0:
-                continue
+        #     if p < 0 or q < 0:
+        #         continue
                 
-            print(f"p: {p}, q: {q}")
-            new_edge_index = add_undir_edge(new_edge_index, p, q) 
-            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+        #     print(f"p: {p}, q: {q}")
+        #     new_edge_index = add_undir_edge(new_edge_index, p, q) 
+        #     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
         
         
         # Clean up edges: move edges from articulation vertices in the hamiltonian cycles to the articulation representation vertices
-        for i in edges_outside_ham_cycle:
+        for i in edges_outside_blocks:
             for j in [0, 1]:
                 if new_edge_index[j, i] in articulation_vertices:
                     new_edge_index[j, i] = vertex_to_articulation[int(new_edge_index[j, i])]

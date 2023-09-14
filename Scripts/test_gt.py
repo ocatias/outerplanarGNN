@@ -74,6 +74,12 @@ def main():
     x4 = torch.tensor([[0],[1],[2],[3], [4], [0], [1]])
     edge_attr4 = torch.tensor([[0], [0],[1], [1],[2], [2],[3], [3], [4], [4], [0], [0], [1], [1], [2], [2], [3], [3]])
     
+    # Graph 4b (non outerplanar)
+    edge_index4b = torch.tensor([[0, 1, 1, 2, 2, 0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 2, 2, 5, 3, 6],
+                                [1, 0, 2, 1, 0, 2, 3, 2, 4, 3, 5, 4, 6, 5, 2, 6, 5, 2, 6, 3]], dtype=torch.long)
+    x4b = torch.tensor([[0],[1],[2],[3], [4], [0], [1]])
+    edge_attr4b = torch.tensor([[0], [0],[1], [1],[2], [2],[3], [3], [4], [4], [0], [0], [1], [1], [2], [2], [3], [3], [4], [4]])
+    
     # Graph 5
     edge_index5 = torch.tensor([[0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 0],
                                 [1, 0, 2, 1, 3, 2, 4, 3, 5, 4, 0, 5]], dtype=torch.long)    
@@ -93,10 +99,13 @@ def main():
     x7 = torch.tensor([[0],[1],[2],[3], [4], [0]])
     edge_attr7 = torch.tensor([[0], [0],[1], [1],[2], [2],[3], [3], [4], [4], [0], [0], [0], [0],[1], [1]])
 
-    edge_indices = [edge_index1, edge_index2, edge_index3, edge_index4, edge_index5, edge_index6]
-    edge_indices = [edge_index1, edge_index2, edge_index3, edge_index4, edge_index5, edge_index6, edge_index7]
-    xs = [x1, x2, x3, x4, x5, x6, x7]
-    edge_attrs = [edge_attr1, edge_attr2, edge_attr3, edge_attr4, edge_attr5, edge_attr6, edge_attr7]
+    edge_indices = [edge_index1, edge_index2, edge_index3, edge_index4, edge_index4b, edge_index5, edge_index6, edge_index7]
+    xs = [x1, x2, x3, x4, x4, x5, x6, x7]
+    edge_attrs = [edge_attr1, edge_attr2, edge_attr3, edge_attr4, edge_attr4b, edge_attr5, edge_attr6, edge_attr7]
+    
+    # edge_indices = [edge_index4]
+    # xs = [x4]
+    # edge_attrs = [edge_attr4]
 
     for i in range(len(edge_indices)):
         edge_index = edge_indices[i]
@@ -120,13 +129,13 @@ def main():
 
         visualize(transformed_data, f"graph_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
         visualize(transformed_data, f"graph_{i}_transformed_distance", colors_feat, v_feat_dim=1, e_feat_dim=1)
-
-    # quit()
+        
+    quit()
     
-    do_vis = False
+    do_vis = True
 
     repeats = 10
-    for ds_name in ["molhiv", "zinc"]:
+    for ds_name in ["zinc", "molhiv"]:
         print(f"Preparing {ds_name}")
 
         distances = []
