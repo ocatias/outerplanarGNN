@@ -173,7 +173,7 @@ class CyclicAdjacencyTransform(BaseTransform):
         print(f"blocks_dict: {blocks_dict}")
         print("\n")
   
-        shortcut_edges = list_of_lists_to_list(list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs'])))
+        # shortcut_edges = list_of_lists_to_list(list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs'])))
         articulation_vertices = []
         
         # Dict to map vertices in ham cycle to id of cycle
@@ -279,17 +279,29 @@ class CyclicAdjacencyTransform(BaseTransform):
                     if vertex_idx is not edge[j]:
                         new_edge_index[j, i] = vertex_idx
                         
+                # Create a duplicate with 0 distance
+                v1 = get_duplicate_vertex(edge[0], block_idx)
+                v2 = get_duplicate_vertex(edge[1], block_idx)
+                new_edge_index = add_dir_edge(new_edge_index, v1, v2)
+                
                 if has_edge_attr:
+                    new_feat = torch.clone(edge_attr[i, :]).unsqueeze(0) 
                     edge_attr[i, pos_ham_dis] = 1
-            
+                    edge_attr = torch.cat((edge_attr, new_feat), dim=0)    
+
             # Counter clockwise (-1): create new vertices / edges 
             elif (pos_in_ham_cycle1 + modulus - 1) % modulus == pos_in_ham_cycle2:     
                 # Change incident vertices to duplicate vertex              
                 new_edge_index[0, i] = get_duplicate_vertex(edge[0], block_idx)
                 new_edge_index[1, i] = get_duplicate_vertex(edge[1], block_idx)
+                    
+                # Create a duplicate with 0 distance
+                new_edge_index = add_dir_edge(new_edge_index, edge[0], edge[1])
                 
                 if has_edge_attr:
+                    new_feat = torch.clone(edge_attr[i, :]).unsqueeze(0) 
                     edge_attr[i, pos_ham_dis] = 1
+                    edge_attr = torch.cat((edge_attr, new_feat), dim=0)    
 
             # Neither (these are "diagonal" edges that are not part of the hamiltonian cycle): duplicate
             else:
