@@ -327,24 +327,25 @@ class CyclicAdjacencyTransform(BaseTransform):
                 continue
             
             for vertex in block:
-                if vertex in articulation_vertices:
-                    idx = nr_vertices_in_graph_with_duplication + created_vertices
-                    created_vertices += 1
-                    
-                    vertex_to_pooling[(vertex, block_idx)] = idx
-                    vertex_og = vertex_in_block_to_vertex_idx[(vertex, block_idx)]
-                    vertex_duplicate = vertex_to_duplicate_dict[(vertex, block_idx)]
-                   
-                    new_edge_index = add_undir_edge(new_edge_index, vertex_og, idx)             
-                    new_edge_index = add_undir_edge(new_edge_index, vertex_duplicate, idx)
-                    
-                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_ham_pool, 4)
+                idx = nr_vertices_in_graph_with_duplication + created_vertices
+                created_vertices += 1
+                
+                vertex_to_pooling[(vertex, block_idx)] = idx
+                vertex_og = vertex_in_block_to_vertex_idx[(vertex, block_idx)]
+                vertex_duplicate = vertex_to_duplicate_dict[(vertex, block_idx)]
+                
+                new_edge_index = add_undir_edge(new_edge_index, vertex_og, idx)             
+                new_edge_index = add_undir_edge(new_edge_index, vertex_duplicate, idx)
+                
+                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_ham_pool, 4)
 
-                    if has_vertex_feat:
-                        new_feat = torch.cat((torch.tensor([label_pooling_vertex]), x[vertex, 1:]))
-                        x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
+                if has_vertex_feat:
+                    new_feat = torch.cat((torch.tensor([label_pooling_vertex]), x[vertex, 1:]))
+                    x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
                         
         nr_vertices_in_graph_with_pooling = nr_vertices_in_graph_with_duplication + created_vertices  
+        
+        print(f"vertex_to_pooling: {vertex_to_pooling}")
         
         # Create block vertices
         created_vertices = 0
@@ -360,14 +361,13 @@ class CyclicAdjacencyTransform(BaseTransform):
             
             for vertex in block:      
                 if is_ham_cycle[block_idx]:
-                    new_edge_index = add_undir_edge(new_edge_index, vertex_in_block_to_vertex_idx[(vertex, block_idx)], idx)
-                    new_edge_index = add_undir_edge(new_edge_index, vertex_to_duplicate_dict[(vertex, block_idx)], idx)
-                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 4)
+                    pooling_vertex = vertex_to_pooling[(int(vertex), block_idx)]
+                    new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
+                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 2)
                     
-                    if vertex in articulation_vertices:
-                        pooling_vertex = vertex_to_pooling[(int(vertex), block_idx)]
-                        new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
-                        edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
+                    # if vertex in articulation_vertices:
+                    #     new_edge_index = add_undir_edge(new_edge_index, pooling_vertex, idx)
+                    #     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_block, 2)
                 else:
                     new_edge_index = add_undir_edge(new_edge_index, vertex_in_block_to_vertex_idx[(vertex, block_idx)], idx)
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 2)
@@ -414,22 +414,22 @@ class CyclicAdjacencyTransform(BaseTransform):
         
         # Add shortcut edges
         # print(f"raw_id_to_block_vertex: {raw_id_to_block_vertex}")
-        for edge in shortcut_edges:
-            print(edge)
-            p, q = edge[0], edge[1]
-            print(f"p: {p}, q: {q}")
-            # If incident vertices are block vertices then map them to the newly created block vertices
-            if p < 0:
-                p = block_to_block_vertex_idx[og_block_idx_to_new_idx[p]]
-            if q < 0:
-                q = block_to_block_vertex_idx[og_block_idx_to_new_idx[q]]
+        # for edge in shortcut_edges:
+            # print(edge)
+            # p, q = edge[0], edge[1]
+            # print(f"p: {p}, q: {q}")
+            # # If incident vertices are block vertices then map them to the newly created block vertices
+            # if p < 0:
+            #     p = block_to_block_vertex_idx[og_block_idx_to_new_idx[p]]
+            # if q < 0:
+            #     q = block_to_block_vertex_idx[og_block_idx_to_new_idx[q]]
                 
-            if p < 0 or q < 0:
-                continue
+            # if p < 0 or q < 0:
+            #     continue
                 
-            print(f"p: {p}, q: {q}")
-            new_edge_index = add_undir_edge(new_edge_index, p, q) 
-            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+            # print(f"p: {p}, q: {q}")
+            # new_edge_index = add_undir_edge(new_edge_index, p, q) 
+            # edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
         
         
         # Clean up edges: move edges to articulation vertices 
