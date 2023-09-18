@@ -106,7 +106,9 @@ class GNN(torch.nn.Module):
             new_mlp.append(new_linear_layer)
 
             if self.num_mlp_layers > 0 and i < self.num_mlp_layers - 1:
+                new_mlp.append(torch.nn.BatchNorm1d(hidden_size))
                 new_mlp.append(self.activation)
+                new_mlp.append(torch.nn.Dropout(p=self.drop_ratio))
 
         new_mlp.requires_grad = True
         self.mlp = new_mlp
