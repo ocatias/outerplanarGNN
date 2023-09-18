@@ -1,0 +1,2 @@
+python Exp/run_experiment.py -grid Configs/Eval/cat_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
+python Exp/run_experiment.py -grid Configs/Eval/GIN_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
