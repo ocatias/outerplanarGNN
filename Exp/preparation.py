@@ -23,7 +23,9 @@ from Misc.scheduler import get_cosine_schedule_with_warmup
 def get_max_hamiltonian_cycle_length(dataset):
     if dataset == "peptides_func":
         return -1
-    return -1
+    elif dataset == "ogbg-molhiv":
+        return 44
+    return 25
 
 def get_transform(args, split = None):
     transforms = []
