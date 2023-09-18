@@ -1,5 +1,5 @@
 declare -a datasets=("ogbg-molbace" "ogbg-moltoxcast" "ogbg-mollipo" "ogbg-molbbbp" "ogbg-molsider" "ogbg-moltox21" "ogbg-molesol" )
-declare -a configs=("cat_ogb_small.yaml" "oGIN_ogb_small.yaml" )
+declare -a configs=("cat_ogb_small.yaml" "GIN_ogb_small.yaml" )
 
 echo "HI"
 
