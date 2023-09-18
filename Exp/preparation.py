@@ -25,7 +25,9 @@ def get_max_hamiltonian_cycle_length(dataset):
         return -1
     elif dataset == "ogbg-molhiv":
         return 44
-    return 25
+    elif dataset == "ZINC":
+        return 25
+    return 44
 
 def get_transform(args, split = None):
     transforms = []
