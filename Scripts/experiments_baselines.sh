@@ -1,5 +1,5 @@
 declare -a datasets=("ogbg-molbace" "ogbg-mollipo" "ogbg-molbbbp" "ogbg-molsider" "ogbg-moltox21" "ogbg-molesol" "ogbg-moltoxcast")
-declare -a configs=("cat_ogb_small.yaml" "GIN_ogb_small.yaml" )
+declare -a configs=("GIN_ogb_small.yaml" )
 
 echo "HI"
 
@@ -12,9 +12,8 @@ for ds in "${datasets[@]}"
         python Exp/run_experiment.py -grid "Configs/Eval/${config}" -dataset "$ds" --candidates 64  --repeats 10
         done
     done
-   
-
 
 # ZINC
-python Exp/run_experiment.py -grid "Configs/Eval/cat_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
 python Exp/run_experiment.py -grid "Configs/Eval/GIN_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
+
+python Exp/run_experiment.py -grid Configs/Eval/GIN_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
