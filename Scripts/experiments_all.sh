@@ -15,5 +15,5 @@ for ds in "${datasets[@]}"
     done
 
 # ZINC
-python Exp/run_experiment.py -grid "Configs/Eval/cat_molhiv.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
+python Exp/run_experiment.py -grid "Configs/Eval/cat_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
 
