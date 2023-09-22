@@ -129,7 +129,7 @@ class GNN_node(torch.nn.Module):
             if gnn_type == 'gin':
                 self.convs.append(GINConv(emb_dim, edge_encoder, between_repr_factor=between_repr_factor, activation=activation))
             elif gnn_type == 'gcn':
-                self.convs.append(GCNConv(emb_dim, edge_encoder))
+                self.convs.append(GCNConv(emb_dim, edge_encoder, activation=activation))
             elif gnn_type == 'gat': 
                 self.convs.append(GATv2Conv(in_channels = emb_dim, out_channels = emb_dim, edge_dim  = 1))
             else:

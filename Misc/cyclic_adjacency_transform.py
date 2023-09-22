@@ -29,6 +29,7 @@ label_pooling_vertex = 2
 label_block_vertex = 3
 label_original_Vertex = 4
 label_global_pool = 5
+label_spider_pool = 6
 
 pos_edge_type = 0
 # Hamiltonian cycle distance = 0 -> not in a hamiltonian cycle
@@ -44,7 +45,7 @@ label_edge_pool_art = 4
 label_edge_art_original = 5
 label_edge_block_ham = 6
 label_edge_pool_ham = 7
-label_edge_shortcut = 8
+label_edge_shortcut = 8 # or spiderweb
 
 #
 # CODE
@@ -133,7 +134,6 @@ class CyclicAdjacencyTransform(BaseTransform):
 
         ham_cycle_info = get_hamiltonian_cycles(data, self.config)[0]
         print(f"ham_cycle_info: {ham_cycle_info}")
-        
         blocks_dict = dict(ChainMap(*list(map(lambda x: x["blocks"], ham_cycle_info['ccs']))))        
         ham_cycles_dict = dict(ChainMap(*list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))))
               
@@ -174,6 +174,13 @@ class CyclicAdjacencyTransform(BaseTransform):
         print("\n")
   
         # shortcut_edges = list_of_lists_to_list(list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs'])))
+        vertex_to_spiderweb_pool = dict(ChainMap(*list(map(lambda x: x["spiderweb"], ham_cycle_info['ccs']))))
+        print(f"vertex_to_spiderweb_pool: {vertex_to_spiderweb_pool}")
+        spiderweb_pooling_to_vertex_list = defaultdict(lambda: [])
+        for (vertex, spider_web_pooling_vertex) in vertex_to_spiderweb_pool.items():
+            spiderweb_pooling_to_vertex_list[spider_web_pooling_vertex].append(int(vertex))
+        
+        print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
         articulation_vertices = []
         
         # Dict to map vertices in ham cycle to id of cycle
@@ -410,6 +417,7 @@ class CyclicAdjacencyTransform(BaseTransform):
         for block in block_to_block_vertex_idx.values():
             new_edge_index = add_undir_edge(new_edge_index, block, idx) 
             edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_pool_ham, 2)
+            
         nr_vertices_in_new_graph += 1
         
         # Add shortcut edges
@@ -431,6 +439,41 @@ class CyclicAdjacencyTransform(BaseTransform):
             # new_edge_index = add_undir_edge(new_edge_index, p, q) 
             # edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
         
+        # Spiderweb Shorcuts
+        print("\n\n")
+        for created_vertices, vertices_ls in enumerate(spiderweb_pooling_to_vertex_list.values()):
+            new_feat = torch.cat((torch.tensor([label_spider_pool]), torch.zeros(x_shape-1)))
+            x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
+            spider_web_vertex_idx = nr_vertices_in_new_graph + created_vertices
+            
+            for vertex_idx in vertices_ls:
+                print(f"\t{vertex_idx}:")
+                # Block vertices
+                if vertex_idx < 0: 
+                    vertex_idx = block_to_block_vertex_idx[og_block_idx_to_new_idx[vertex_idx]]
+                    print(f"->{vertex_idx}")
+                    new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
+                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                else:
+                    
+                    if vertices_to_block_idx[vertex_idx] is not []:      
+                        for block_idx in vertices_to_block_idx[vertex_idx]:
+                            v1 = vertex_in_block_to_vertex_idx[(vertex_idx, block_idx)]
+                            new_edge_index = add_undir_edge(new_edge_index, v1, spider_web_vertex_idx) 
+                            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                            
+                            if (vertex_idx, block_idx) in vertex_to_duplicate_dict:
+                                v2 = vertex_to_duplicate_dict[(vertex_idx, block_idx)]
+                                new_edge_index = add_undir_edge(new_edge_index, v2, spider_web_vertex_idx) 
+                                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                    else:
+                        print(f"{vertices_to_block_idx[vertex_idx]}")
+                        new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
+                        edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+
+                
+            pass
+        print(f"vertices_to_block_idx: {vertices_to_block_idx}")
         
         # Clean up edges: move edges to articulation vertices 
         for i in edges_outside_blocks:
@@ -449,6 +492,8 @@ class CyclicAdjacencyTransform(BaseTransform):
         if data.edge_index.shape[1]> 0:
             assert data.x.shape[0] >= (torch.max(data.edge_index) + 1)
             assert torch.min(data.edge_index) >= 0
+            
+        # quit()
         return data
 
     def __repr__(self) -> str:

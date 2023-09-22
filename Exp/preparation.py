@@ -21,7 +21,7 @@ from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 from Misc.scheduler import get_cosine_schedule_with_warmup
 
 def get_max_hamiltonian_cycle_length(dataset):
-    if dataset == "peptides_func":
+    if dataset == "peptides-func":
         return -1
     elif dataset == "ogbg-molhiv":
         return 44
@@ -114,7 +114,7 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         activation = torch.nn.GELU()
     
     if args.use_cat:
-        node_feature_dims.append(6)
+        node_feature_dims.append(7)
         edge_feature_dims += [9, get_max_hamiltonian_cycle_length(args.dataset)]
         
     if args.dataset.lower() == "zinc"and not args.do_drop_feat:
