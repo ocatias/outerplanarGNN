@@ -441,22 +441,20 @@ class CyclicAdjacencyTransform(BaseTransform):
         
         # Spiderweb Shorcuts
         print("\n\n")
+        print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
         for created_vertices, vertices_ls in enumerate(spiderweb_pooling_to_vertex_list.values()):
             new_feat = torch.cat((torch.tensor([label_spider_pool]), torch.zeros(x_shape-1)))
             x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
             spider_web_vertex_idx = nr_vertices_in_new_graph + created_vertices
             
             for vertex_idx in vertices_ls:
-                print(f"\t{vertex_idx}:")
                 # Block vertices
                 if vertex_idx < 0: 
                     vertex_idx = block_to_block_vertex_idx[og_block_idx_to_new_idx[vertex_idx]]
-                    print(f"->{vertex_idx}")
                     new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
                 else:
-                    
-                    if vertices_to_block_idx[vertex_idx] is not []:      
+                    if vertices_to_block_idx[vertex_idx] != []:     
                         for block_idx in vertices_to_block_idx[vertex_idx]:
                             v1 = vertex_in_block_to_vertex_idx[(vertex_idx, block_idx)]
                             new_edge_index = add_undir_edge(new_edge_index, v1, spider_web_vertex_idx) 
@@ -467,12 +465,9 @@ class CyclicAdjacencyTransform(BaseTransform):
                                 new_edge_index = add_undir_edge(new_edge_index, v2, spider_web_vertex_idx) 
                                 edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
                     else:
-                        print(f"{vertices_to_block_idx[vertex_idx]}")
                         new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
                         edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
 
-                
-            pass
         print(f"vertices_to_block_idx: {vertices_to_block_idx}")
         
         # Clean up edges: move edges to articulation vertices 
