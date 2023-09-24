@@ -3,6 +3,9 @@ declare -a configs=("cat_ogb_small.yaml" )
 
 echo "HI"
 
+# ZINC
+python Exp/run_experiment.py -grid "Configs/Eval/cat_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
+
 # ogb
 python Exp/run_experiment.py -grid Configs/Eval/cat_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
 for ds in "${datasets[@]}"
@@ -13,7 +16,4 @@ for ds in "${datasets[@]}"
         python Exp/run_experiment.py -grid "Configs/Eval/${config}" -dataset "$ds" --candidates 64  --repeats 10
         done
     done
-
-# ZINC
-python Exp/run_experiment.py -grid "Configs/Eval/cat_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
 
