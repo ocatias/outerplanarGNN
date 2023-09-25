@@ -102,11 +102,12 @@ class CyclicAdjacencyTransform(BaseTransform):
     """
             
     """
-    def __init__(self, debug = False):
+    def __init__(self, debug = False, spiderweb = True):
         self.config = {'binfile': './outerplanaritytest', 'verbose': True}
         self.debug = debug
         print("Created CyclicAdjacencyTransform")
-
+        self.spiderweb = spiderweb
+        
     def __call__(self, data: Data):
         edge_index, x, edge_attr = data.edge_index, data.x, data.edge_attr 
         has_edge_attr = edge_attr is not None 
@@ -440,33 +441,34 @@ class CyclicAdjacencyTransform(BaseTransform):
             # edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
         
         # Spiderweb Shorcuts
-        print("\n\n")
-        print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
-        for created_vertices, vertices_ls in enumerate(spiderweb_pooling_to_vertex_list.values()):
-            new_feat = torch.cat((torch.tensor([label_spider_pool]), torch.zeros(x_shape-1)))
-            x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
-            spider_web_vertex_idx = nr_vertices_in_new_graph + created_vertices
-            
-            for vertex_idx in vertices_ls:
-                # Block vertices
-                if vertex_idx < 0: 
-                    vertex_idx = block_to_block_vertex_idx[og_block_idx_to_new_idx[vertex_idx]]
-                    new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
-                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
-                else:
-                    if vertices_to_block_idx[vertex_idx] != []:     
-                        for block_idx in vertices_to_block_idx[vertex_idx]:
-                            v1 = vertex_in_block_to_vertex_idx[(vertex_idx, block_idx)]
-                            new_edge_index = add_undir_edge(new_edge_index, v1, spider_web_vertex_idx) 
-                            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
-                            
-                            if (vertex_idx, block_idx) in vertex_to_duplicate_dict:
-                                v2 = vertex_to_duplicate_dict[(vertex_idx, block_idx)]
-                                new_edge_index = add_undir_edge(new_edge_index, v2, spider_web_vertex_idx) 
-                                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
-                    else:
+        if self.spiderweb:
+            print("\n\n")
+            print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
+            for created_vertices, vertices_ls in enumerate(spiderweb_pooling_to_vertex_list.values()):
+                new_feat = torch.cat((torch.tensor([label_spider_pool]), torch.zeros(x_shape-1)))
+                x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
+                spider_web_vertex_idx = nr_vertices_in_new_graph + created_vertices
+                
+                for vertex_idx in vertices_ls:
+                    # Block vertices
+                    if vertex_idx < 0: 
+                        vertex_idx = block_to_block_vertex_idx[og_block_idx_to_new_idx[vertex_idx]]
                         new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
                         edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                    else:
+                        if vertices_to_block_idx[vertex_idx] != []:     
+                            for block_idx in vertices_to_block_idx[vertex_idx]:
+                                v1 = vertex_in_block_to_vertex_idx[(vertex_idx, block_idx)]
+                                new_edge_index = add_undir_edge(new_edge_index, v1, spider_web_vertex_idx) 
+                                edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                                
+                                if (vertex_idx, block_idx) in vertex_to_duplicate_dict:
+                                    v2 = vertex_to_duplicate_dict[(vertex_idx, block_idx)]
+                                    new_edge_index = add_undir_edge(new_edge_index, v2, spider_web_vertex_idx) 
+                                    edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
+                        else:
+                            new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
+                            edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
 
         print(f"vertices_to_block_idx: {vertices_to_block_idx}")
         
