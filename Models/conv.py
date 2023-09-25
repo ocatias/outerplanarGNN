@@ -131,7 +131,7 @@ class GNN_node(torch.nn.Module):
             elif gnn_type == 'gcn':
                 self.convs.append(GCNConv(emb_dim, edge_encoder, activation=activation))
             elif gnn_type == 'gat': 
-                self.convs.append(GATv2Conv(in_channels = emb_dim, out_channels = emb_dim, edge_dim  = 1))
+                self.convs.append(GATv2Conv(in_channels = emb_dim, out_channels = emb_dim, edge_dim  = emb_dim))
             else:
                 raise ValueError('Undefined GNN type called {}'.format(gnn_type))
 
@@ -147,7 +147,8 @@ class GNN_node(torch.nn.Module):
         # Only works for integer features!!!
         if self.gnn_type == "gin":
             x = x.long()
-        edge_attr = edge_attr.long()
+        if self.gnn_type in ["gin", "gcn"]:
+            edge_attr = edge_attr.long()
 
         h_list = [self.node_encoder(x)]     
         for layer in range(self.num_layer):
