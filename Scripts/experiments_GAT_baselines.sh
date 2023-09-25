@@ -3,6 +3,9 @@ declare -a configs=("GAT_ogb_small.yaml" )
 
 echo "HI"
 
+# ZINC
+python Exp/run_experiment.py -grid "Configs/Eval_GAT/GAT_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
+
 # ogb
 for ds in "${datasets[@]}"
     do
@@ -12,8 +15,5 @@ for ds in "${datasets[@]}"
         python Exp/run_experiment.py -grid "Configs/Eval_GAT/${config}" -dataset "$ds" --candidates 64  --repeats 10
         done
     done
-
-# ZINC
-python Exp/run_experiment.py -grid "Configs/Eval_GAT/GAT_zinc.yaml" -dataset "ZINC" --candidates 48  --repeats 10 
 
 python Exp/run_experiment.py -grid Configs/Eval_GAT/GAT_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
