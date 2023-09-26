@@ -105,7 +105,6 @@ class CyclicAdjacencyTransform(BaseTransform):
     def __init__(self, debug = False, spiderweb = True):
         self.config = {'binfile': './outerplanaritytest', 'verbose': True}
         self.debug = debug
-        print("Created CyclicAdjacencyTransform")
         self.spiderweb = spiderweb
         
     def __call__(self, data: Data):
@@ -134,13 +133,13 @@ class CyclicAdjacencyTransform(BaseTransform):
 
 
         ham_cycle_info = get_hamiltonian_cycles(data, self.config)[0]
-        print(f"ham_cycle_info: {ham_cycle_info}")
+        # print(f"ham_cycle_info: {ham_cycle_info}")
         blocks_dict = dict(ChainMap(*list(map(lambda x: x["blocks"], ham_cycle_info['ccs']))))        
         ham_cycles_dict = dict(ChainMap(*list(map(lambda x: x["hamiltonianCycles"], ham_cycle_info['ccs']))))
               
-        print("\nBefore renaming")
-        print(f"ham_cycles_dict: {ham_cycles_dict}")
-        print(f"blocks_dict: {blocks_dict}")
+        # print("\nBefore renaming")
+        # print(f"ham_cycles_dict: {ham_cycles_dict}")
+        # print(f"blocks_dict: {blocks_dict}")
                 
         
                 
@@ -168,20 +167,20 @@ class CyclicAdjacencyTransform(BaseTransform):
                 del ham_cycles_dict[key]
                 
                 
-        print(f"og_block_idx_to_new_idx: {og_block_idx_to_new_idx}")
-        print("\nAfter renaming")
-        print(f"ham_cycles_dict: {ham_cycles_dict}")
-        print(f"blocks_dict: {blocks_dict}")
-        print("\n")
+        # print(f"og_block_idx_to_new_idx: {og_block_idx_to_new_idx}")
+        # print("\nAfter renaming")
+        # print(f"ham_cycles_dict: {ham_cycles_dict}")
+        # print(f"blocks_dict: {blocks_dict}")
+        # print("\n")
   
         # shortcut_edges = list_of_lists_to_list(list(map(lambda x: x["shortcutEdges"], ham_cycle_info['ccs'])))
         vertex_to_spiderweb_pool = dict(ChainMap(*list(map(lambda x: x["spiderweb"], ham_cycle_info['ccs']))))
-        print(f"vertex_to_spiderweb_pool: {vertex_to_spiderweb_pool}")
+        # print(f"vertex_to_spiderweb_pool: {vertex_to_spiderweb_pool}")
         spiderweb_pooling_to_vertex_list = defaultdict(lambda: [])
         for (vertex, spider_web_pooling_vertex) in vertex_to_spiderweb_pool.items():
             spiderweb_pooling_to_vertex_list[spider_web_pooling_vertex].append(int(vertex))
         
-        print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
+        # print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
         articulation_vertices = []
         
         # Dict to map vertices in ham cycle to id of cycle
@@ -191,7 +190,7 @@ class CyclicAdjacencyTransform(BaseTransform):
             for vertex in block:
                 vertices_to_block_idx[(vertex)].append(key)
               
-        print(f"vertices_to_block_idx: {vertices_to_block_idx}")
+        # print(f"vertices_to_block_idx: {vertices_to_block_idx}")
         
         vertices_in_ham_cycles = list(set(vertices_to_block_idx.keys()))
         vertices_in_ham_cycles.sort()       
@@ -242,7 +241,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                     x = torch.cat((x, torch.unsqueeze(x[vertex], 0)), dim=0)
                     labels.append(label_ham_cycle)
         
-        print(f"vertex_to_duplicate_dict: {vertex_to_duplicate_dict}\n")
+        # print(f"vertex_to_duplicate_dict: {vertex_to_duplicate_dict}\n")
         if has_vertex_feat:
             x = torch.cat((torch.unsqueeze(torch.tensor(labels), 1), x), dim= 1)
             
@@ -353,7 +352,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                         
         nr_vertices_in_graph_with_pooling = nr_vertices_in_graph_with_duplication + created_vertices  
         
-        print(f"vertex_to_pooling: {vertex_to_pooling}")
+        # print(f"vertex_to_pooling: {vertex_to_pooling}")
         
         # Create block vertices
         created_vertices = 0
@@ -380,7 +379,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                     new_edge_index = add_undir_edge(new_edge_index, vertex_in_block_to_vertex_idx[(vertex, block_idx)], idx)
                     edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_block_ham, 2)
                     
-        print(f"block_to_block_vertex_idx: {block_to_block_vertex_idx}")
+        # print(f"block_to_block_vertex_idx: {block_to_block_vertex_idx}")
 
         nr_vertices_in_graph_with_block = nr_vertices_in_graph_with_pooling + created_vertices
         
@@ -410,7 +409,7 @@ class CyclicAdjacencyTransform(BaseTransform):
         # Add a virtual node pooling blocks:
         idx = nr_vertices_in_new_graph
         
-        print(f"Virtual pooling idx: {idx}")
+        # print(f"Virtual pooling idx: {idx}")
         if has_vertex_feat:
             new_feat = torch.cat((torch.tensor([label_global_pool]), torch.zeros(x_shape-1)))
             x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
@@ -442,8 +441,8 @@ class CyclicAdjacencyTransform(BaseTransform):
         
         # Spiderweb Shorcuts
         if self.spiderweb:
-            print("\n\n")
-            print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
+            # print("\n\n")
+            # print(f"spiderweb_pooling_to_vertex_list: {spiderweb_pooling_to_vertex_list}")
             for created_vertices, vertices_ls in enumerate(spiderweb_pooling_to_vertex_list.values()):
                 new_feat = torch.cat((torch.tensor([label_spider_pool]), torch.zeros(x_shape-1)))
                 x = torch.cat((x, torch.unsqueeze(new_feat, 0)), dim=0)
@@ -470,7 +469,7 @@ class CyclicAdjacencyTransform(BaseTransform):
                             new_edge_index = add_undir_edge(new_edge_index, vertex_idx, spider_web_vertex_idx) 
                             edge_attr = maybe_add_edge_attr(has_edge_attr, edge_attr, e_shape, label_edge_shortcut, 2)
 
-        print(f"vertices_to_block_idx: {vertices_to_block_idx}")
+        # print(f"vertices_to_block_idx: {vertices_to_block_idx}")
         
         # Clean up edges: move edges to articulation vertices 
         for i in edges_outside_blocks:
