@@ -45,3 +45,8 @@ Benchmark CAT (results in terminal):
 ```
 python Scripts/benchmark_cat.py
 ```
+
+Compute directed effective resistance for CAT:
+```
+python Exp/resistance.py
+```
