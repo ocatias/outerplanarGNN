@@ -27,14 +27,21 @@ python -m pip install -r requirements.txt
 ## Replicating the experiments
 Results can be found in the results directory.
 
-Baselines (GIN):
+Baselines:
 ```
-python Exp/run_experiment.py -grid Configs/Eval/GIN_zinc.yaml -dataset ZINC --candidates 48 --repeats 10
-python Exp/run_experiment.py -grid Configs/Eval/GIN_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
+bash Scripts/experiments_GIN_baselines.sh
+bash Scripts/experiments_GCN_baselines.sh
+bash Scripts/experiments_GAT_baselines.sh
 ```
 
-New models (CAT+GIN):
+CAT models:
 ```
-python Exp/run_experiment.py -grid Configs/Eval/cat_molhiv.yaml -dataset ogbg-molhiv --candidates 16 --repeats 10
-python Exp/run_experiment.py -grid Configs/Eval/cat_zinc.yaml -dataset ZINC --candidates 48 --repeats 10
+bash Scripts/experiments_GIN_cat.sh
+bash Scripts/experiments_GCN_cat.sh
+bash Scripts/experiments_GAT_cat.sh
+```
+
+Benchmark CAT (results in terminal):
+```
+python Scripts/benchmark_cat.py
 ```
