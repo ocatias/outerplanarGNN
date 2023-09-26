@@ -97,53 +97,52 @@ datasets = ["zinc"] + ogbg_datasets
 
 splits = ["train", "test"]
 
-dataset_name = "ogbg-molhiv"
-split = "train"
+# dataset_name = "ogbg-molhiv"
+# split = "train"
 
-if dataset_name == "zinc":
-    ds = ZINC(root=config.DATA_PATH, subset=True, split=split)
-    spider_ds = copy.deepcopy(ds)
-elif dataset_name in ogbg_datasets:
-    ds = PygGraphPropPredDataset(root=config.DATA_PATH, name=dataset_name)
-    split_idx = ds.get_idx_split()
-    ds = ds[split_idx[split]]
-    spider_ds = copy.deepcopy(ds)
-else:
-    raise "Sure?"
-    ds = ZINC(root=config.DATA_PATH, subset=True, split=split)
-    spider_ds = copy.deepcopy(ds)
+for dataset_name in datasets:
+    for split in splits:
+        if dataset_name == "zinc":
+            ds = ZINC(root=config.DATA_PATH, subset=True, split=split)
+            spider_ds = copy.deepcopy(ds)
+        elif dataset_name in ogbg_datasets:
+            ds = PygGraphPropPredDataset(root=config.DATA_PATH, name=dataset_name)
+            split_idx = ds.get_idx_split()
+            ds = ds[split_idx[split]]
+            spider_ds = copy.deepcopy(ds)
+        else:
+            raise "Not implemented"
 
+        results_path = "Results/"
+        digits = 3
 
-results_path = "Results/"
-digits = 3
+        r_mean, r_sum, r_max = compute_dataset_resistance(ds, CAT, directed_resistance)
+        sr_mean, sr_sum, sr_max = compute_dataset_resistance(spider_ds, spiderCAT, directed_resistance)
 
-r_mean, r_sum, r_max = compute_dataset_resistance(ds, CAT, directed_resistance)
-sr_mean, sr_sum, sr_max = compute_dataset_resistance(spider_ds, spiderCAT, directed_resistance)
+        header = ["method",
+                  "avg_mean_res", "std_mean_res",
+                  "avg_tot_res", "std_tot_res",
+                  "avg_max_res", "std_max_res"]
+        average_cat = ["CAT",
+                       np.round(np.mean(r_mean), digits), np.round(np.std(r_mean), digits),
+                       np.round(np.mean(r_sum), digits), np.round(np.std(r_sum), digits),
+                       np.round(np.mean(r_max), digits), np.round(np.std(r_max), digits)]
+        average_spider_cat = ["spiderCAT",
+                              np.round(np.mean(sr_mean), digits), np.round(np.std(sr_mean), digits),
+                              np.round(np.mean(sr_sum), digits), np.round(np.std(sr_sum), digits),
+                              np.round(np.mean(sr_max), digits), np.round(np.std(sr_max), digits)]
 
-header = ["method",
-          "avg_mean_res", "std_mean_res",
-          "avg_tot_res", "std_tot_res",
-          "avg_max_res", "std_max_res"]
-average_cat = ["CAT",
-               np.round(np.mean(r_mean), digits), np.round(np.std(r_mean), digits),
-               np.round(np.mean(r_sum), digits), np.round(np.std(r_sum), digits),
-               np.round(np.mean(r_max), digits), np.round(np.std(r_max), digits)]
-average_spider_cat = ["spiderCAT",
-                      np.round(np.mean(sr_mean), digits), np.round(np.std(sr_mean), digits),
-                      np.round(np.mean(sr_sum), digits), np.round(np.std(sr_sum), digits),
-                      np.round(np.mean(sr_max), digits), np.round(np.std(sr_max), digits)]
+        with open(os.path.join(results_path, dataset_name + split + ".csv"), 'w') as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(header)
+            csvwriter.writerow(average_cat)
+            csvwriter.writerow(average_spider_cat)
 
-with open(os.path.join(results_path, dataset_name+split+".csv"), 'w') as f:
-    csvwriter = csv.writer(f)
-    csvwriter.writerow(header)
-    csvwriter.writerow(average_cat)
-    csvwriter.writerow(average_spider_cat)
-
-with open(os.path.join(results_path, dataset_name+split+"_all.csv"), 'w') as f:
-    csvwriter = csv.writer(f)
-    csvwriter.writerow(["r_mean"] + r_mean)
-    csvwriter.writerow(["r_sum"] + r_sum)
-    csvwriter.writerow(["r_max"] + r_max)
-    csvwriter.writerow(["sr_mean"] + sr_mean)
-    csvwriter.writerow(["sr_sum"] + sr_sum)
-    csvwriter.writerow(["sr_max"] + sr_max)
+        with open(os.path.join(results_path, dataset_name + split + "_all.csv"), 'w') as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(["r_mean"] + r_mean)
+            csvwriter.writerow(["r_sum"] + r_sum)
+            csvwriter.writerow(["r_max"] + r_max)
+            csvwriter.writerow(["sr_mean"] + sr_mean)
+            csvwriter.writerow(["sr_sum"] + sr_sum)
+            csvwriter.writerow(["sr_max"] + sr_max)
