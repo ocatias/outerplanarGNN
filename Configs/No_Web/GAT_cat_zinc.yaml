@@ -1,4 +1,4 @@
-model:  ["GIN"]
+model:  ["GAT"]
 batch_size: [128]
 emb_dim: [64, 128, 256]
 drop_out: [0, 0.5]
