@@ -90,6 +90,8 @@ def parse_args(passed_args=None):
     
     parser.add_argument('--cat', type=int, default=0,
                         help="Set to 1 to use cycle adjacency transform (default: 0)")
+    parser.add_argument('--spiderweb', type=int, default=1,
+                        help="(If cat = 1) Use spiderweb shortcuts (default: 1)")
     parser.add_argument('--JK', type=str, default='last',
                     help='Type of jumping knowledge to use (default: last; options: last, sum, concat)') 
 
@@ -126,5 +128,5 @@ def parse_args(passed_args=None):
     args.__dict__["do_drop_feat"] = args.drop_feat == 1
     args.__dict__["use_cat"] = args.cat == 1
     args.__dict__["use_residual_conection"] = args.residual_conection == 1
-
+    args.__dict__["use_spiderweb"] = args.spiderweb == 1
     return args

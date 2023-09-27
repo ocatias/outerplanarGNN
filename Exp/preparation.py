@@ -43,7 +43,7 @@ def get_transform(args, split = None):
         transforms.append(DropFeatures(args.emb_dim))
         
     if args.use_cat:
-        transforms.append(CyclicAdjacencyTransform())
+        transforms.append(CyclicAdjacencyTransform(spiderweb=args.use_spiderweb))
 
     return Compose(transforms)
 
