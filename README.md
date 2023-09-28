@@ -41,7 +41,12 @@ bash Scripts/experiments_GCN_cat.sh
 bash Scripts/experiments_GAT_cat.sh
 ```
 
-Benchmark CAT (results in terminal):
+Benchmakr GIN vs CAT+GIN runtime:
+```
+bash Scripts/benchmark_training.sh 
+```
+
+Benchmark CAT pre-processing time (results in terminal):
 ```
 python Scripts/benchmark_cat.py
 ```
