@@ -103,9 +103,9 @@ def main():
     xs = [x1, x2, x3, x4, x4, x5, x6, x7]
     edge_attrs = [edge_attr1, edge_attr2, edge_attr3, edge_attr4, edge_attr4b, edge_attr5, edge_attr6, edge_attr7]
     
-    # edge_indices = [edge_index4]
-    # xs = [x4]
-    # edge_attrs = [edge_attr4]
+    # edge_indices = [edge_index4b]
+    # xs = [x4b]
+    # edge_attrs = [edge_attr4b]
 
     for i in range(len(edge_indices)):
         edge_index = edge_indices[i]
@@ -118,20 +118,20 @@ def main():
         # print(f"Before trafo: {data}")
         data.x = data.x + 1
         data.edge_attr = data.edge_attr + 1
-        visualize(data, f"graph_{i}", colors_feat)
+        visualize(data, f"graph_{i}", colors_feat[1: ])
         data.x = data.x -1
         data.edge_attr = data.edge_attr - 1
-        transform = CyclicAdjacencyTransform(debug=True)
+        transform = CyclicAdjacencyTransform(debug=True, spiderweb=False)
         
         transformed_data = transform(data)
 
         # print(f"After trafo: {transformed_data}")
-
-        visualize(transformed_data, f"graph_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
-        visualize(transformed_data, f"graph_{i}_transformed_distance", colors_feat, v_feat_dim=1, e_feat_dim=1)
         
-    quit()
-    
+        visualize(transformed_data, f"graph_{i}_transformed_og_feats", colors_type, v_feat_dim=1, e_feat_dim=2)
+        visualize(transformed_data, f"graph_{i}_transformed_types", colors_type, v_feat_dim=0, e_feat_dim=0)
+        visualize(transformed_data, f"graph_{i}_transformed_distance", colors_type, v_feat_dim=0, e_feat_dim=1)
+            
+        # quit()
     do_vis = True
 
     repeats = 10
@@ -149,7 +149,7 @@ def main():
         else:
             raise 
         
-        transform = CyclicAdjacencyTransform(debug=True)
+        transform = CyclicAdjacencyTransform(debug=True, spiderweb=False)
         print(f"Running on {ds_name}")
         runtimes = []
         
