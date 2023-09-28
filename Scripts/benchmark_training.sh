@@ -1,4 +1,4 @@
-declare -a datasets=("ogbg-molbace" "ogbg-mollipo" "ogbg-molbbbp" "ogbg-molsider" "ogbg-moltox21" "ogbg-molesol" "ogbg-moltoxcast" "ogbg-molhiv")
+declare -a datasets=("ZINC" "ogbg-molbace" "ogbg-mollipo" "ogbg-molbbbp" "ogbg-molsider" "ogbg-moltox21" "ogbg-molesol" "ogbg-moltoxcast" "ogbg-molhiv")
 declare -a configs=("bench_cat.yaml" "bench_gin.yaml")
 
 echo "Benmarking Training"
