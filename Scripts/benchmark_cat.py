@@ -21,18 +21,16 @@ from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 def main():
     repeats = 10
     results = []
-    for ds_name in ["zinc", "molhiv"]:
-        for use_spider_web in [True, False]:
+    for ds_name in ["molhiv", "molbace", "molbbbp", "molsider", "moltoxcast", "molesol", "mollipo", "moltox21"]:
+        for use_spider_web in [False]:
             print(f"\nRunning on {ds_name} \t Spiderweb: {use_spider_web}")
 
             if ds_name == "zinc":
                 ds = ZINC(root=config.DATA_PATH, subset=True, split="train")
-            elif ds_name == "molhiv":
-                ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-molhiv")
+            else:
+                ds = PygGraphPropPredDataset(root=config.DATA_PATH, name="ogbg-"+ds_name)
                 split_idx = ds.get_idx_split()
                 ds = ds[split_idx["train"]]
-            else:
-                raise 
             
             transform = CyclicAdjacencyTransform(debug=True, spiderweb=use_spider_web)
             runtimes = []
