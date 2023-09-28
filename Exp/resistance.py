@@ -68,16 +68,29 @@ def compute_dataset_resistance(dataset, transform_func, resistance_func):
     mean_resistance = []
     max_resistance = []
     sum_resistance = []
+    diameter = []
+    total_components = 0
+    total_components_before_removal = 0
+    number_lone_nodes = 0
 
     for i, graph in enumerate(tqdm(dataset)):
 
-        graph = transform_func(graph)
+        adj = to_scipy_sparse_matrix(graph.edge_index, num_nodes=graph.num_nodes)
+        num_components_before_removal, component = sp.csgraph.connected_components(adj, connection="weak")
+        total_components_before_removal += num_components_before_removal
+        if transform_func is not None:
+            graph = transform_func(graph)
+        initial_nodes = graph.num_nodes
         graph = node_remover(graph)
+        no_lone_nodes = graph.num_nodes
+        lone_nodes = initial_nodes - no_lone_nodes
+        number_lone_nodes += lone_nodes
 
         # Check for multiple components.
         adj = to_scipy_sparse_matrix(graph.edge_index, num_nodes=graph.num_nodes)
         num_components, component = sp.csgraph.connected_components(adj, connection="weak")
         _, count = np.unique(component, return_counts=True)
+        total_components += num_components
 
         for i in range(0, num_components):
             subset = np.in1d(component, count.argsort()[i])
@@ -87,56 +100,71 @@ def compute_dataset_resistance(dataset, transform_func, resistance_func):
             max_resistance.append(R.max())
             sum_resistance.append(R.sum())
 
-    return mean_resistance, sum_resistance, max_resistance
+            # Compute component diameter.
+            adj = to_scipy_sparse_matrix(graph_component.edge_index,
+                                         num_nodes=graph_component.num_nodes)
+            if adj.size > 0:  # Else, the diameter is not defined.
+                diam = np.max(sp.csgraph.shortest_path(sp.coo_array(adj).tocsr()))
+                diameter.append(diam)
+
+    print(f"\nTotal components before any transformation: {total_components_before_removal}")
+    print(f"Total components after transformation and lone node removal: {total_components}\n")
+    print(f"Number lone nodes: {number_lone_nodes}\n")
+
+    return mean_resistance, sum_resistance, max_resistance, diameter, total_components
 
 
 ogbg_datasets = ["ogbg-molbace", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbbbp",
                  "ogbg-molsider", "ogbg-moltoxcast", "ogbg-mollipo", "ogbg-molhiv"]
 
 datasets = ["zinc"] + ogbg_datasets
-
 splits = ["train", "test"]
 
-# dataset_name = "ogbg-molhiv"
-# split = "train"
-
 for dataset_name in datasets:
+    print(f"\n\n{dataset_name}")
+
     for split in splits:
         if dataset_name == "zinc":
             ds = ZINC(root=config.DATA_PATH, subset=True, split=split)
-            spider_ds = copy.deepcopy(ds)
+            ds_no_cat = copy.deepcopy(ds)
         elif dataset_name in ogbg_datasets:
             ds = PygGraphPropPredDataset(root=config.DATA_PATH, name=dataset_name)
             split_idx = ds.get_idx_split()
             ds = ds[split_idx[split]]
-            spider_ds = copy.deepcopy(ds)
+            ds_no_cat = copy.deepcopy(ds)
         else:
             raise "Not implemented"
 
         results_path = "Results/"
         digits = 3
 
-        r_mean, r_sum, r_max = compute_dataset_resistance(ds, CAT, directed_resistance)
-        sr_mean, sr_sum, sr_max = compute_dataset_resistance(spider_ds, spiderCAT, directed_resistance)
+        print("CAT")
+        r_mean, r_sum, r_max, diam, total_components = compute_dataset_resistance(ds, CAT, directed_resistance)
+        print("noCAT")
+        sr_mean, sr_sum, sr_max, s_diam, s_total_components = compute_dataset_resistance(ds_no_cat, None, directed_resistance)
 
         header = ["method",
                   "avg_mean_res", "std_mean_res",
                   "avg_tot_res", "std_tot_res",
-                  "avg_max_res", "std_max_res"]
+                  "avg_max_res", "std_max_res", "diam", "std_diam", "num_components"]
         average_cat = ["CAT",
                        np.round(np.mean(r_mean), digits), np.round(np.std(r_mean), digits),
                        np.round(np.mean(r_sum), digits), np.round(np.std(r_sum), digits),
-                       np.round(np.mean(r_max), digits), np.round(np.std(r_max), digits)]
-        average_spider_cat = ["spiderCAT",
-                              np.round(np.mean(sr_mean), digits), np.round(np.std(sr_mean), digits),
-                              np.round(np.mean(sr_sum), digits), np.round(np.std(sr_sum), digits),
-                              np.round(np.mean(sr_max), digits), np.round(np.std(sr_max), digits)]
+                       np.round(np.mean(r_max), digits), np.round(np.std(r_max), digits),
+                       np.round(np.mean(diam), digits), np.round(np.std(diam), digits),
+                       total_components]
+        average_no_cat = ["noCAT",
+                          np.round(np.mean(sr_mean), digits), np.round(np.std(sr_mean), digits),
+                          np.round(np.mean(sr_sum), digits), np.round(np.std(sr_sum), digits),
+                          np.round(np.mean(sr_max), digits), np.round(np.std(sr_max), digits),
+                          np.round(np.mean(s_diam), digits), np.round(np.std(s_diam), digits),
+                          s_total_components]
 
         with open(os.path.join(results_path, dataset_name + split + ".csv"), 'w') as f:
             csvwriter = csv.writer(f)
             csvwriter.writerow(header)
             csvwriter.writerow(average_cat)
-            csvwriter.writerow(average_spider_cat)
+            csvwriter.writerow(average_no_cat)
 
         with open(os.path.join(results_path, dataset_name + split + "_all.csv"), 'w') as f:
             csvwriter = csv.writer(f)
