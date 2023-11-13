@@ -57,8 +57,10 @@ def load_dataset(args, config):
         trafo_str = repr(transform).replace("\n", "")
         dir = os.path.join(config.DATA_PATH, args.dataset, trafo_str)
 
-    if args.dataset.lower() == "zinc":
-        datasets = [ZINC(root=dir, subset=True, split=split, pre_transform=transform) for split in ["train", "val", "test"]]
+    if args.dataset.lower() in ["zinc", "zinc100k"]:
+        use_subset = args.dataset.lower() == "zinc"
+        args.dataset = "ZINC"
+        datasets = [ZINC(root=dir, subset=use_subset, split=split, pre_transform=transform) for split in ["train", "val", "test"]]
     elif args.dataset.lower() == "cifar10":
         datasets = [GNNBenchmarkDataset(name ="CIFAR10", root=dir, split=split, pre_transform=Compose([ToUndirected(), transform])) for split in ["train", "val", "test"]]
     elif args.dataset.lower() == "cluster":
@@ -119,7 +121,7 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
         
     if args.dataset.lower() == "zinc"and not args.do_drop_feat:
         edge_feature_dims += [4 + cat_add]
-        node_feature_dims.append(21 + cat_add)
+        node_feature_dims.append(28 + cat_add)
         node_encoder = NodeEncoder(emb_dim=args.emb_dim, feature_dims=node_feature_dims)
         edge_encoder =  EdgeEncoder(emb_dim=args.emb_dim, activation=activation, feature_dims=edge_feature_dims)
     elif args.dataset.lower() in ["peptides-func", "ogbg-molhiv", "ogbg-molpcba", "ogbg-moltox21", "ogbg-molesol", "ogbg-molbace", "ogbg-molbbbp", "ogbg-molclintox", "ogbg-molmuv", "ogbg-molsider", "ogbg-moltoxcast", "ogbg-molfreesolv", "ogbg-mollipo"] and not args.do_drop_feat:
