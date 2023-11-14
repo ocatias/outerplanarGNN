@@ -85,6 +85,8 @@ class EdgeEncoder(torch.nn.Module):
                 self.num_feats.append(i)
         
     def forward(self, edge_attr):
+        if len(edge_attr.shape) == 1:
+            edge_attr = edge_attr.view(-1, 1)
         bond_embedding = 0   
         for i, dim in enumerate(self.cat_feats):
             bond_embedding += self.bond_embedding_list[i](edge_attr[:,dim])

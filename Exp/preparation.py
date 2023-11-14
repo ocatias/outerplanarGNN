@@ -14,6 +14,9 @@ from ogb.utils.features import get_atom_feature_dims, get_bond_feature_dims
 from Models.gnn import GNN
 from Models.encoder import NodeEncoder, EdgeEncoder, ZincAtomEncoder, EgoEncoder
 from Models.mlp import MLP
+from Models.ESAN.transform import policy2transform
+from Models.ESAN.conv import ZINCGINConv, GINConv
+from Models.ESAN.models import DSSnetwork
 from Misc.drop_features import DropFeatures
 from Misc.add_zero_edge_attr import AddZeroEdgeAttr
 from Misc.pad_node_attr import PadNodeAttr
@@ -44,6 +47,10 @@ def get_transform(args, split = None):
         
     if args.use_cat:
         transforms.append(CyclicAdjacencyTransform(spiderweb=args.use_spiderweb))
+
+    if args.model == "DSS":
+        print("Importing 3-egonets policy")
+        transforms.append(policy2transform("ego_nets", 3))
 
     return Compose(transforms)
 
@@ -93,10 +100,16 @@ def load_dataset(args, config):
         datasets = [LRGBDataset(root=dir, name='PCQM-Contact', split=split, pre_transform=transform) for split in ["train", "val", "test"]]
     else:
         raise NotImplementedError("Unknown dataset")
-        
-    train_loader = DataLoader(datasets[0], batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(datasets[1], batch_size=args.batch_size, shuffle=False)
-    test_loader = DataLoader(datasets[2], batch_size=args.batch_size, shuffle=False)
+     
+    if args.model == "DSS":
+        print("Using ESAN")
+        train_loader = DataLoader(datasets[0], batch_size=args.batch_size, shuffle=True, follow_batch=['subgraph_idx'])
+        val_loader = DataLoader(datasets[1], batch_size=args.batch_size, shuffle=False, follow_batch=['subgraph_idx'])
+        test_loader = DataLoader(datasets[2], batch_size=args.batch_size, shuffle=False, follow_batch=['subgraph_idx'])
+    else:
+        train_loader = DataLoader(datasets[0], batch_size=args.batch_size, shuffle=True)
+        val_loader = DataLoader(datasets[1], batch_size=args.batch_size, shuffle=False)
+        test_loader = DataLoader(datasets[2], batch_size=args.batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
 
@@ -140,6 +153,15 @@ def get_model(args, num_classes, num_vertex_features, num_tasks):
     elif args.model.lower() == "mlp":
             return MLP(num_features=num_vertex_features, num_layers=args.num_layers, hidden=args.emb_dim, 
                     num_classes=num_classes, num_tasks=num_tasks, dropout_rate=args.drop_out, graph_pooling=args.pooling)
+    elif args.model == "DSS":    
+        if "zinc" in args.dataset.lower():
+            GNNConv = ZINCGINConv
+        else:
+            GNNConv = GINConv
+    
+        model = DSSnetwork(num_layers=args.num_layers, in_dim=args.emb_dim , emb_dim=args.emb_dim, num_tasks=num_tasks*num_classes,
+                        feature_encoder=node_encoder, GNNConv=GNNConv, bond_encoder=edge_encoder)
+            
     else: # Probably don't need other models
         raise ValueError("Unknown model name")
 
