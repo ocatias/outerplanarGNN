@@ -1,5 +1,5 @@
 model:  ["DSS"]
-batch_size: [128]
+batch_size: [64]
 emb_dim: [64, 128, 256]
 drop_out: [0]
 num_layers: [2,3,4,5]
