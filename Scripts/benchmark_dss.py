@@ -17,10 +17,10 @@ from Misc.utils import edge_tensor_to_list
 from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 
 def main():
-    repeats = 1
+    repeats = 10
     results = []
     for ds_name in ["zinc"]:
-        for trafo in ["node_del", "edge_del"]:
+        for trafo in ["ego"]:
             print(f"\nRunning on {ds_name} \t trafo: {trafo}")
 
             if ds_name == "zinc":

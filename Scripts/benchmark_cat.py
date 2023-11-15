@@ -21,7 +21,7 @@ from Misc.cyclic_adjacency_transform import CyclicAdjacencyTransform
 def main():
     repeats = 10
     results = []
-    for ds_name in ["zinc", "molhiv", "molbace", "molbbbp", "molsider", "moltoxcast", "molesol", "mollipo", "moltox21"]:
+    for ds_name in ["zinc"]:
         for use_spider_web in [False]:
             print(f"\nRunning on {ds_name} \t Spiderweb: {use_spider_web}")
 
