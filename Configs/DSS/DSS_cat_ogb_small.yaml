@@ -8,7 +8,7 @@ cat: [1]
 lr_scheduler: ["None"]
 
 model: ["DSS"]
-batch_size: [64]
+batch_size: [32]
 emb_dim: [64,128]
 drop_out: [0.5]
 num_layer: [2,3,4,5]
