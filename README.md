@@ -1,4 +1,7 @@
-# Outerplanar GNNs
+# Maximally Expressive GNNs for Outerplanar Graphs
+
+Code for our paper _Maximally Expressive GNNs for Outerplanar Graphs_ (TMLR 2024). Previous versions appeared at [GLF@NeurIPS (2023)](https://github.com/ocatias/OuterplanarGNNs_GLF) and [LoG (Extended Abstract, 2023)](https://github.com/ocatias/OuterplanarGNNs_LoG).
+
 ## Setup
 Clone this repository and open the directory
 
@@ -41,7 +44,7 @@ bash Scripts/experiments_GCN_cat.sh
 bash Scripts/experiments_GAT_cat.sh
 ```
 
-Benchmakr GIN vs CAT+GIN runtime:
+Benchmark GIN vs CAT+GIN runtime:
 ```
 bash Scripts/benchmark_training.sh 
 ```
@@ -54,4 +57,15 @@ python Scripts/benchmark_cat.py
 Compute directed effective resistance for CAT:
 ```
 python Exp/resistance.py
+```
+
+## Citation
+Please cite us as
+```
+@inproceedings{Outerplanar-GNNs-GLF,
+  title={Maximally Expressive {GNNs} for Outerplanar Graphs},
+  author={Bause, Franka and Jogl, Fabian and Indri, Patrick and Drucks, Tamara and Kriege, Nils Morten and Gärtner, Thomas and Welke, Pascal and Thiessen, Maximilian},
+  booktitle={TMLR},
+  year={2024}
+}
 ```
